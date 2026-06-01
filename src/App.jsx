@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -20,14 +20,15 @@ import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, userProfile } = useStore();
-  if (!user) return <Navigate to="/login" />;
-  if (user.isNew) return <Navigate to="/onboarding" />;
-  if (adminOnly && userProfile?.role !== 'admin') return <Navigate to="/home" />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.isNew) return <Navigate to="/onboarding" replace />;
+  if (adminOnly && userProfile?.role !== 'admin') return <Navigate to="/home" replace />;
   return children;
 }
 
-export default function App() {
+function AppRoutes() {
   const { user, setUser, setUserProfile, theme } = useStore();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -48,42 +49,54 @@ export default function App() {
         setUser(null);
         setUserProfile(null);
       }
+      setLoading(false);
     });
     return unsub;
   }, []);
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, var(--purple-600), var(--purple-800))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>☄️</div>
+        <div style={{ width: 36, height: 36, border: '3px solid var(--purple-200)', borderTopColor: 'var(--purple-600)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/login" element={user && !user.isNew ? <Navigate to="/home" replace /> : <LoginPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+      <Route path="/diary" element={<ProtectedRoute><DiaryPage /></ProtectedRoute>} />
+      <Route path="/diary/new" element={<ProtectedRoute><DiaryNewPage /></ProtectedRoute>} />
+      <Route path="/typing" element={<ProtectedRoute><TypingPage /></ProtectedRoute>} />
+      <Route path="/homework" element={<ProtectedRoute><HomeworkPage /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/shop" element={<ProtectedRoute><ShopPage /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
+      <Route path="*" element={<Navigate to={user && !user.isNew ? '/home' : '/login'} replace />} />
+    </Routes>
+  );
+}
+
+export default function App() {
   return (
     <BrowserRouter>
       <Toaster
         position="top-center"
         toastOptions={{
           style: {
-            fontFamily: 'var(--font-main)',
-            fontWeight: 700,
-            fontSize: 14,
-            borderRadius: 12,
-            background: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-md)',
+            fontFamily: 'var(--font-main)', fontWeight: 700, fontSize: 14,
+            borderRadius: 12, background: 'var(--bg-primary)', color: 'var(--text-primary)',
+            border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)',
           },
           success: { iconTheme: { primary: 'var(--teal-400)', secondary: 'white' } },
           error: { iconTheme: { primary: 'var(--red-400)', secondary: 'white' } },
         }}
       />
-      <Routes>
-        <Route path="/login" element={user && !user.isNew ? <Navigate to="/home" /> : <LoginPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-        <Route path="/diary" element={<ProtectedRoute><DiaryPage /></ProtectedRoute>} />
-        <Route path="/diary/new" element={<ProtectedRoute><DiaryNewPage /></ProtectedRoute>} />
-        <Route path="/typing" element={<ProtectedRoute><TypingPage /></ProtectedRoute>} />
-        <Route path="/homework" element={<ProtectedRoute><HomeworkPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/shop" element={<ProtectedRoute><ShopPage /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to={user && !user.isNew ? '/home' : '/login'} />} />
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

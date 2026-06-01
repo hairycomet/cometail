@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -19,6 +20,7 @@ const STEPS = ['Profile', 'Goal', 'Done'];
 
 export default function OnboardingPage() {
   const { user, setUserProfile } = useStore();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [nickname, setNickname] = useState('');
   const [realName, setRealName] = useState('');
@@ -61,6 +63,7 @@ export default function OnboardingPage() {
 
       setUserProfile(profile);
       toast.success('Welcome to Cometail! +50 pt earned 🎉');
+      setTimeout(() => navigate('/home'), 800);
     } catch (err) {
       console.error(err);
       toast.error('Something went wrong');
