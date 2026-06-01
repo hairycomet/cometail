@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { signInWithPopup, getRedirectResult } from 'firebase/auth';
+import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase/config';
 import { useStore } from '../store';
@@ -27,6 +27,7 @@ export default function LoginPage() {
   const setUserProfile = useStore((s) => s.setUserProfile);
 
   useEffect(() => {
+    setLoading(true);
     getRedirectResult(auth).then(async (result) => {
       if (result?.user) {
         const user = result.user;
@@ -39,7 +40,11 @@ export default function LoginPage() {
           setUserProfile(userSnap.data());
         }
       }
-    }).catch(console.error);
+      setLoading(false);
+    }).catch((err) => {
+      console.error('Redirect result error:', err);
+      setLoading(false);
+    });
   }, []);
 
   const checkInviteCode = async () => {
@@ -70,35 +75,25 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     if (!inviteValid) { toast.error('Please enter a valid invite code first'); return; }
-    setLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        setUser({ ...user, isNew: true, inviteCode: inviteCode.toUpperCase(), inviteData });
-      } else {
-        setUser(user);
-        setUserProfile(userSnap.data());
-      }
+      await signInWithRedirect(auth, googleProvider);
     } catch (err) {
       console.error(err);
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-        toast.error('Popup blocked! Please allow popups for this site.');
-      } else {
-        toast.error('Login failed: ' + err.message);
-      }
+      toast.error('Login failed. Please try again.');
     }
-    setLoading(false);
   };
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          style={{ width: 40, height: 40, border: '3px solid var(--purple-200)', borderTopColor: 'var(--purple-600)', borderRadius: '50%' }} />
+      </div>
+    );
+  }
+
   return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg-secondary)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px', position: 'relative', overflow: 'hidden',
-    }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
         <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(83,74,183,0.1) 0%, transparent 70%)' }} />
         <div style={{ position: 'absolute', bottom: '-15%', left: '-8%', width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(239,159,39,0.08) 0%, transparent 70%)' }} />
@@ -146,9 +141,10 @@ export default function LoginPage() {
           )}
         </div>
 
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleGoogleLogin} disabled={loading || !inviteValid}
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleGoogleLogin} disabled={!inviteValid}
           style={{ width: '100%', padding: '14px', background: inviteValid ? 'linear-gradient(135deg, var(--purple-600), var(--purple-800))' : 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 15, fontWeight: 800, color: inviteValid ? 'white' : 'var(--text-tertiary)', cursor: inviteValid ? 'pointer' : 'not-allowed', marginBottom: 20, border: 'none' }}>
-          {loading ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%' }} /> : <><IconBrandGoogle size={20} />Continue with Google</>}
+          <IconBrandGoogle size={20} />
+          Continue with Google
         </motion.button>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
