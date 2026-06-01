@@ -1,9 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// 🔧 Replace with your Firebase project config
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -14,19 +13,16 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Offline persistence (일기 임시저장 오프라인 지원)
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn('Offline persistence failed: multiple tabs open');
-  } else if (err.code === 'unimplemented') {
-    console.warn('Offline persistence not supported in this browser');
-  }
-});
+// Force local persistence so login survives page reload on iOS
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+
+// Add scopes for Google
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
 
 export default app;

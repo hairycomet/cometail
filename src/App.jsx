@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase/config';
 import { useStore } from './store';
 import './styles/global.css';
@@ -17,6 +17,8 @@ import HomeworkPage from './pages/HomeworkPage';
 import ProfilePage from './pages/ProfilePage';
 import ShopPage from './pages/ShopPage';
 import AdminPage from './pages/AdminPage';
+
+const ADMIN_EMAILS = ['hairycomet@gmail.com'];
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, userProfile } = useStore();
@@ -40,8 +42,14 @@ function AppRoutes() {
         const userRef = doc(db, 'users', firebaseUser.uid);
         const snap = await getDoc(userRef);
         if (snap.exists()) {
+          const profile = snap.data();
+          // Auto-promote admin emails
+          if (ADMIN_EMAILS.includes(firebaseUser.email) && profile.role !== 'admin') {
+            await updateDoc(userRef, { role: 'admin' });
+            profile.role = 'admin';
+          }
           setUser(firebaseUser);
-          setUserProfile(snap.data());
+          setUserProfile(profile);
         } else {
           setUser({ ...firebaseUser, isNew: true });
         }
@@ -57,9 +65,8 @@ function AppRoutes() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, var(--purple-600), var(--purple-800))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>☄️</div>
-        <div style={{ width: 36, height: 36, border: '3px solid var(--purple-200)', borderTopColor: 'var(--purple-600)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg, var(--purple-600), var(--purple-800))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, boxShadow: '0 8px 24px rgba(83,74,183,0.4)' }}>☄️</div>
+        <div className="spinner" />
       </div>
     );
   }
@@ -84,18 +91,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            fontFamily: 'var(--font-main)', fontWeight: 700, fontSize: 14,
-            borderRadius: 12, background: 'var(--bg-primary)', color: 'var(--text-primary)',
-            border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)',
-          },
-          success: { iconTheme: { primary: 'var(--teal-400)', secondary: 'white' } },
-          error: { iconTheme: { primary: 'var(--red-400)', secondary: 'white' } },
-        }}
-      />
+      <Toaster position="top-center" toastOptions={{
+        style: { fontFamily: 'var(--font-main)', fontWeight: 700, fontSize: 14, borderRadius: 14, background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)' },
+        success: { iconTheme: { primary: 'var(--teal-400)', secondary: 'white' } },
+        error: { iconTheme: { primary: 'var(--red-400)', secondary: 'white' } },
+      }} />
       <AppRoutes />
     </BrowserRouter>
   );
