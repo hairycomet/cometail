@@ -19,7 +19,7 @@ const ITEMS = {
     { id: 'grad',    slot: 'hat', name: 'Grad Cap', icon: '👨‍🎓', price: 300 },
     { id: 'crown',   slot: 'hat', name: 'Crown',    icon: '👑', price: 800 },
     { id: 'ribbon',  slot: 'hat', name: 'Ribbon',   icon: '🎀', price: 400 },
-    { id: 'none',    slot: 'hat', name: 'No hat',   icon: '😊', price: 200 },
+    { id: 'none',    slot: 'hat', name: 'No hat',   icon: '😊', price: 0 },
   ],
   outfits: [
     { id: 'default', slot: 'bodyColor', name: 'Purple', icon: '💜', price: 0 },
@@ -47,20 +47,22 @@ export default function ShopPage() {
   const { user, userProfile, updateProfile } = useStore();
   const [tab, setTab] = useState('hats');
   const [busy, setBusy] = useState(null);
+  const [pendingEquipped, setPendingEquipped] = useState(null); // preview before save
+  const [saving, setSaving] = useState(false);
 
   const equipped = userProfile?.equipped || {};
   const ownedItems = userProfile?.ownedItems || ['default'];
   const points = userProfile?.points || 0;
 
   // For preview, combine current equipped with slot-based preview
-  const previewEquipped = equipped;
+  const previewEquipped = pendingEquipped || equipped;
 
   const isOwned = (item) => {
     if (item.price === 0) return true;
     return ownedItems.includes(`${item.slot}:${item.id}`);
   };
 
-  const isEquipped = (item) => equipped[item.slot] === item.id;
+  const isEquipped = (item) => (pendingEquipped || equipped)[item.slot] === item.id;
 
   const handleTap = async (item) => {
     if (item.slot === 'special') {
@@ -70,19 +72,10 @@ export default function ShopPage() {
     }
 
     if (isOwned(item)) {
-      // Equip it
-      if (isEquipped(item)) return;
-      setBusy(item.id);
-      try {
-        const newEquipped = { ...equipped, [item.slot]: item.id };
-        await updateDoc(doc(db, 'users', user.uid), { equipped: newEquipped });
-        updateProfile({ equipped: newEquipped });
-        toast.success(`${item.name} equipped! ✨`);
-      } catch (e) {
-        console.error(e);
-        toast.error('Failed to equip');
-      }
-      setBusy(null);
+      // Preview it (save later with Save button)
+      const current = pendingEquipped || equipped;
+      if (current[item.slot] === item.id) return; // already selected
+      setPendingEquipped({ ...current, [item.slot]: item.id });
       return;
     }
 
@@ -106,6 +99,23 @@ export default function ShopPage() {
     }
     setBusy(null);
   };
+
+  const saveEquipped = async () => {
+    if (!pendingEquipped) return;
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { equipped: pendingEquipped });
+      updateProfile({ equipped: pendingEquipped });
+      setPendingEquipped(null);
+      toast.success('Saved! ✨');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to save');
+    }
+    setSaving(false);
+  };
+
+  const discardChanges = () => setPendingEquipped(null);
 
   return (
     <div className="page">
@@ -131,14 +141,26 @@ export default function ShopPage() {
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
           }}>
           <MiniMe equipped={previewEquipped} size={110} />
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
             <span style={{ fontSize: 11, background: 'white', color: 'var(--purple-600)', padding: '3px 10px', borderRadius: 20, fontWeight: 700, border: '1px solid var(--purple-200)' }}>
-              Hat: {ITEMS.hats.find(h => h.id === (equipped.hat || 'default'))?.name || 'Default'}
+              Hat: {ITEMS.hats.find(h => h.id === ((pendingEquipped || equipped).hat || 'default'))?.name || 'Default'}
             </span>
             <span style={{ fontSize: 11, background: 'white', color: 'var(--purple-600)', padding: '3px 10px', borderRadius: 20, fontWeight: 700, border: '1px solid var(--purple-200)' }}>
-              Color: {ITEMS.outfits.find(o => o.id === (equipped.bodyColor || 'default'))?.name || 'Purple'}
+              Color: {ITEMS.outfits.find(o => o.id === ((pendingEquipped || equipped).bodyColor || 'default'))?.name || 'Purple'}
             </span>
           </div>
+          {pendingEquipped && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <motion.button whileTap={{ scale: 0.95 }} onClick={saveEquipped} disabled={saving}
+                style={{ flex: 1, padding: '10px', background: 'var(--purple-600)', color: 'white', borderRadius: 12, fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-main)' }}>
+                {saving ? 'Saving...' : '✓ Save outfit'}
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.95 }} onClick={discardChanges}
+                style={{ padding: '10px 16px', background: 'white', color: 'var(--text-secondary)', borderRadius: 12, fontWeight: 700, fontSize: 13, border: '1px solid var(--border)', cursor: 'pointer' }}>
+                Discard
+              </motion.button>
+            </div>
+          )}
         </motion.div>
 
         {/* Tabs */}

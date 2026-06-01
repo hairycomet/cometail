@@ -102,7 +102,7 @@ export default function AdminPage() {
       return;
     }
     try {
-      const studentUids = students.filter(s => s.role !== 'admin').map(s => s.uid || s.id);
+      const studentUids = students.filter(s => s.role !== 'admin').map(s => s.id);
       await addDoc(collection(db, 'homework'), {
         title: hwForm.title.trim(),
         description: hwForm.description.trim(),
