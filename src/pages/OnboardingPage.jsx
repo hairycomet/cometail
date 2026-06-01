@@ -19,7 +19,7 @@ const EXAM_OPTIONS = [
 const STEPS = ['Profile', 'Goal', 'Done'];
 
 export default function OnboardingPage() {
-  const { user, setUserProfile } = useStore();
+  const { user, setUser, setUserProfile } = useStore();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [nickname, setNickname] = useState('');
@@ -62,6 +62,8 @@ export default function OnboardingPage() {
       }
 
       setUserProfile(profile);
+      // Remove isNew flag so ProtectedRoute lets us through
+      setUser({ ...user, isNew: false });
       toast.success('Welcome to Cometail! +50 pt earned 🎉');
       navigate('/home', { replace: true });
     } catch (err) {
