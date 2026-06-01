@@ -37,29 +37,40 @@ function AppRoutes() {
   }, [theme]);
 
   useEffect(() => {
+    // Timeout fallback — if Firebase takes too long (e.g. iOS), show login
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          const profile = snap.data();
-          // Auto-promote admin emails
-          if (ADMIN_EMAILS.includes(firebaseUser.email) && profile.role !== 'admin') {
-            await updateDoc(userRef, { role: 'admin' });
-            profile.role = 'admin';
+      clearTimeout(timeout);
+      try {
+        if (firebaseUser) {
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            const profile = snap.data();
+            if (ADMIN_EMAILS.includes(firebaseUser.email) && profile.role !== 'admin') {
+              await updateDoc(userRef, { role: 'admin' });
+              profile.role = 'admin';
+            }
+            setUser(firebaseUser);
+            setUserProfile(profile);
+          } else {
+            setUser({ ...firebaseUser, isNew: true });
           }
-          setUser(firebaseUser);
-          setUserProfile(profile);
         } else {
-          setUser({ ...firebaseUser, isNew: true });
+          setUser(null);
+          setUserProfile(null);
         }
-      } else {
+      } catch (err) {
+        console.error('Auth state error:', err);
         setUser(null);
         setUserProfile(null);
       }
       setLoading(false);
     });
-    return unsub;
+    return () => { clearTimeout(timeout); unsub(); };
   }, []);
 
   if (loading) {
