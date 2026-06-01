@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -37,15 +37,21 @@ function AppRoutes() {
   }, [theme]);
 
   useEffect(() => {
-    // Timeout fallback — if Firebase takes too long (e.g. iOS), show login
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 5000);
+    // Short timeout — don't wait forever
+    const timeout = setTimeout(() => setLoading(false), 3000);
 
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       clearTimeout(timeout);
-      try {
-        if (firebaseUser) {
+      if (firebaseUser) {
+        // Only update from Firestore if we don't already have user set
+        // (to avoid overwriting isNew set by login page)
+        const currentUser = useStore.getState().user;
+        if (currentUser?.isNew) {
+          // Already handled by login page
+          setLoading(false);
+          return;
+        }
+        try {
           const userRef = doc(db, 'users', firebaseUser.uid);
           const snap = await getDoc(userRef);
           if (snap.exists()) {
@@ -57,24 +63,23 @@ function AppRoutes() {
             setUser(firebaseUser);
             setUserProfile(profile);
           } else {
-            // New user — get invite info from localStorage
-            const inviteCode = localStorage.getItem('cometail_invite') || 'COMET-HARRY';
-            const inviteData = JSON.parse(localStorage.getItem('cometail_invite_data') || '{"inviterNickname":"Comet","inviterUid":"admin"}');
-            localStorage.removeItem('cometail_invite');
-            localStorage.removeItem('cometail_invite_data');
-            setUser({ ...firebaseUser, isNew: true, inviteCode, inviteData });
+            setUser({ ...firebaseUser, isNew: true });
           }
-        } else {
+        } catch (err) {
+          console.error('Auth state error:', err);
+          setUser(firebaseUser);
+        }
+      } else {
+        // Only clear if login page hasn't just set a user
+        const currentUser = useStore.getState().user;
+        if (!currentUser) {
           setUser(null);
           setUserProfile(null);
         }
-      } catch (err) {
-        console.error('Auth state error:', err);
-        setUser(null);
-        setUserProfile(null);
       }
       setLoading(false);
     });
+
     return () => { clearTimeout(timeout); unsub(); };
   }, []);
 
@@ -89,7 +94,13 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user && !user.isNew ? <Navigate to="/home" replace /> : <LoginPage />} />
+      <Route path="/login" element={
+        user
+          ? user.isNew
+            ? <Navigate to="/onboarding" replace />
+            : <Navigate to="/home" replace />
+          : <LoginPage />
+      } />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
       <Route path="/diary" element={<ProtectedRoute><DiaryPage /></ProtectedRoute>} />
@@ -99,7 +110,9 @@ function AppRoutes() {
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/shop" element={<ProtectedRoute><ShopPage /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
-      <Route path="*" element={<Navigate to={user && !user.isNew ? '/home' : '/login'} replace />} />
+      <Route path="*" element={
+        <Navigate to={user ? (user.isNew ? '/onboarding' : '/home') : '/login'} replace />
+      } />
     </Routes>
   );
 }

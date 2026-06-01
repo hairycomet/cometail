@@ -62,21 +62,26 @@ export default function LoginPage() {
     if (!email || !password) { toast.error('Enter email and password'); return; }
     setLoading(true);
     try {
-      // Just sign in — onAuthStateChanged in App.jsx handles the rest
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      // Don't setUser here — App.jsx onAuthStateChanged will do it
+      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const snap = await getDoc(doc(db, 'users', result.user.uid));
+      if (snap.exists()) {
+        const profile = snap.data();
+        setUser(result.user);
+        setUserProfile(profile);
+      } else {
+        setUser({ ...result.user, isNew: true, inviteCode: 'COMET-HARRY', inviteData: { inviterNickname: 'Comet', inviterUid: 'admin' } });
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Login error:', err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         toast.error('Wrong email or password');
       } else if (err.code === 'auth/too-many-requests') {
         toast.error('Too many attempts. Try again later.');
       } else {
-        toast.error('Login failed. Try again.');
+        toast.error('Login failed: ' + err.code);
       }
-      setLoading(false);
     }
-    // Don't setLoading(false) on success — page will navigate away
+    setLoading(false);
   };
 
   const handleSignup = async () => {
@@ -85,23 +90,25 @@ export default function LoginPage() {
     if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      // Save invite info so onAuthStateChanged can use it
-      localStorage.setItem('cometail_invite', inviteCode.toUpperCase());
-      localStorage.setItem('cometail_invite_data', JSON.stringify(inviteData || { inviterNickname: 'Comet', inviterUid: 'admin' }));
-      await createUserWithEmailAndPassword(auth, email.trim(), password);
-      // onAuthStateChanged in App.jsx handles routing
+      const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      setUser({
+        ...result.user,
+        isNew: true,
+        inviteCode: inviteCode.toUpperCase(),
+        inviteData: inviteData || { inviterNickname: 'Comet', inviterUid: 'admin' },
+      });
     } catch (err) {
-      console.error(err);
+      console.error('Signup error:', err);
       if (err.code === 'auth/email-already-in-use') {
         toast.error('Email already registered. Try logging in!');
         setMode('login');
       } else if (err.code === 'auth/invalid-email') {
         toast.error('Invalid email address');
       } else {
-        toast.error('Signup failed. Try again.');
+        toast.error('Signup failed: ' + err.code);
       }
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const inputStyle = {
