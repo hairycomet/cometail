@@ -36,34 +36,42 @@ export default function LoginPage() {
   const setUserProfile = useStore((s) => s.setUserProfile);
 
   useEffect(() => {
-    // Only check redirect result if we came back from a redirect
-    const wasRedirecting = sessionStorage.getItem('cometail_redirecting');
-    if (!wasRedirecting) return;
+    const wasRedirecting = localStorage.getItem('cometail_redirecting');
+    
+    // Always check on iOS/Safari since sessionStorage gets cleared
+    // On other browsers, only check if we were redirecting
+    const shouldCheck = wasRedirecting || (isIOS() || isSafariBrowser());
+    if (!shouldCheck) return;
 
-    sessionStorage.removeItem('cometail_redirecting');
     setCheckingRedirect(true);
+    localStorage.removeItem('cometail_redirecting');
 
     getRedirectResult(auth)
       .then(async (result) => {
         if (result?.user) {
           await handleUserLogin(result.user);
+        } else {
+          setCheckingRedirect(false);
         }
       })
       .catch((err) => {
         console.error('Redirect error:', err);
-        toast.error('Login failed. Please try again.');
-      })
-      .finally(() => setCheckingRedirect(false));
+        // Don't show error if there was just no redirect result
+        if (err.code !== 'auth/no-auth-event') {
+          toast.error('Login failed. Please try again.');
+        }
+        setCheckingRedirect(false);
+      });
   }, []);
 
   const handleUserLogin = async (firebaseUser) => {
     try {
       const userRef = doc(db, 'users', firebaseUser.uid);
       const snap = await getDoc(userRef);
-      const code = sessionStorage.getItem('cometail_invite') || inviteCode || 'COMET-HARRY';
-      const data = JSON.parse(sessionStorage.getItem('cometail_invite_data') || '{"inviterNickname":"Comet","inviterUid":"admin"}');
-      sessionStorage.removeItem('cometail_invite');
-      sessionStorage.removeItem('cometail_invite_data');
+      const code = localStorage.getItem('cometail_invite') || inviteCode || 'COMET-HARRY';
+      const data = JSON.parse(localStorage.getItem('cometail_invite_data') || '{"inviterNickname":"Comet","inviterUid":"admin"}');
+      localStorage.removeItem('cometail_invite');
+      localStorage.removeItem('cometail_invite_data');
 
       if (!snap.exists()) {
         setUser({ ...firebaseUser, isNew: true, inviteCode: code, inviteData: data });
@@ -107,8 +115,8 @@ export default function LoginPage() {
     if (!inviteValid) { toast.error('Enter a valid invite code first'); return; }
 
     // Save invite info
-    sessionStorage.setItem('cometail_invite', inviteCode.toUpperCase());
-    sessionStorage.setItem('cometail_invite_data', JSON.stringify(inviteData || { inviterNickname: 'Comet', inviterUid: 'admin' }));
+    localStorage.setItem('cometail_invite', inviteCode.toUpperCase());
+    localStorage.setItem('cometail_invite_data', JSON.stringify(inviteData || { inviterNickname: 'Comet', inviterUid: 'admin' }));
 
     setSigningIn(true);
 
@@ -116,7 +124,7 @@ export default function LoginPage() {
 
     try {
       if (useRedirect) {
-        sessionStorage.setItem('cometail_redirecting', '1');
+        localStorage.setItem('cometail_redirecting', '1');
         await signInWithRedirect(auth, googleProvider);
         // Will redirect away — no code runs after this
       } else {
@@ -125,12 +133,12 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error('Login error:', err);
-      sessionStorage.removeItem('cometail_redirecting');
+      localStorage.removeItem('cometail_redirecting');
 
       if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
         // Fallback to redirect
         try {
-          sessionStorage.setItem('cometail_redirecting', '1');
+          localStorage.setItem('cometail_redirecting', '1');
           await signInWithRedirect(auth, googleProvider);
         } catch (e2) {
           toast.error('Login failed. Please allow popups or try again.');
