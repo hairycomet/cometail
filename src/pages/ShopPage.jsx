@@ -1,70 +1,110 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useStore } from '../store';
 import BottomNav from '../components/BottomNav';
 import MiniMe from '../components/MiniMe';
-import { IconArrowLeft, IconStar } from '@tabler/icons-react';
+import { IconArrowLeft, IconStar, IconCheck } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+// Item ID maps directly to what MiniMe reads
+// equipped.hat = 'default' | 'grad' | 'crown' | 'ribbon' | 'none'
+// equipped.bodyColor = 'default' | 'red' | 'blue' | 'green' | 'pink' | 'orange'
+
 const ITEMS = {
   hats: [
-    { id: 'hat_default', name: 'Cap', icon: '🎓', price: 0, owned: true },
-    { id: 'hat_grad', name: 'Grad cap', icon: '👨‍🎓', price: 300 },
-    { id: 'hat_crown', name: 'Crown', icon: '👑', price: 800 },
-    { id: 'hat_ribbon', name: 'Ribbon', icon: '🎀', price: 400 },
-    { id: 'hat_star', name: 'Star halo', icon: '⭐', price: 0, inviteOnly: true },
+    { id: 'default', slot: 'hat', name: 'Blue Cap', icon: '🎓', price: 0 },
+    { id: 'grad',    slot: 'hat', name: 'Grad Cap', icon: '👨‍🎓', price: 300 },
+    { id: 'crown',   slot: 'hat', name: 'Crown',    icon: '👑', price: 800 },
+    { id: 'ribbon',  slot: 'hat', name: 'Ribbon',   icon: '🎀', price: 400 },
+    { id: 'none',    slot: 'hat', name: 'No hat',   icon: '😊', price: 200 },
   ],
   outfits: [
-    { id: 'outfit_default', name: 'Purple', icon: '👕', price: 0, owned: true },
-    { id: 'outfit_red', name: 'Red', icon: '🔴', price: 200 },
-    { id: 'outfit_blue', name: 'Blue', icon: '🔵', price: 200 },
-    { id: 'outfit_green', name: 'Green', icon: '🟢', price: 200 },
+    { id: 'default', slot: 'bodyColor', name: 'Purple', icon: '💜', price: 0 },
+    { id: 'red',     slot: 'bodyColor', name: 'Red',    icon: '❤️', price: 200 },
+    { id: 'blue',    slot: 'bodyColor', name: 'Blue',   icon: '💙', price: 200 },
+    { id: 'green',   slot: 'bodyColor', name: 'Green',  icon: '💚', price: 200 },
+    { id: 'pink',    slot: 'bodyColor', name: 'Pink',   icon: '🩷', price: 300 },
+    { id: 'orange',  slot: 'bodyColor', name: 'Orange', icon: '🧡', price: 300 },
   ],
   special: [
-    { id: 'streak_shield', name: 'Streak Shield', icon: '🛡️', desc: 'Skip 1 day, keep streak', price: 500 },
-    { id: 'extra_invite', name: 'Extra Invite', icon: '🎟️', desc: 'Invite 1 more friend', price: 1000 },
-    { id: 'gift_card', name: 'Gift Card', icon: '🎁', desc: 'Redeem for real gift!', price: 3000 },
+    { id: 'streak_shield', slot: 'special', name: 'Streak Shield', icon: '🛡️', desc: 'Skip 1 day, keep streak', price: 500 },
+    { id: 'extra_invite',  slot: 'special', name: 'Extra Invite',  icon: '🎟️', desc: 'Invite 1 more friend',   price: 1000 },
+    { id: 'gift_card',     slot: 'special', name: 'Gift Card',     icon: '🎁', desc: 'Redeem for real gift!',  price: 3000 },
   ],
 };
 
-const TABS = ['hats', 'outfits', 'special'];
+const TABS = [
+  { id: 'hats', label: '🎩 Hats' },
+  { id: 'outfits', label: '👕 Outfits' },
+  { id: 'special', label: '⚡ Special' },
+];
 
 export default function ShopPage() {
   const navigate = useNavigate();
-  const { user, userProfile, setUserProfile } = useStore();
+  const { user, userProfile, updateProfile } = useStore();
   const [tab, setTab] = useState('hats');
-  const [preview, setPreview] = useState(userProfile?.equipped || {});
+  const [busy, setBusy] = useState(null);
 
   const equipped = userProfile?.equipped || {};
-  const ownedItems = userProfile?.ownedItems || ['hat_default', 'outfit_default'];
+  const ownedItems = userProfile?.ownedItems || ['default'];
   const points = userProfile?.points || 0;
 
-  const handleBuy = async (item) => {
-    if (ownedItems.includes(item.id)) {
-      // Equip it
-      const slotMap = { hat: 'hats', outfit: 'outfits' };
-      const slot = item.id.startsWith('hat_') ? 'hat' : 'outfit';
-      const newEquipped = { ...equipped, [slot]: item.id };
-      try {
-        await updateDoc(doc(db, 'users', user.uid), { equipped: newEquipped });
-        setUserProfile({ ...userProfile, equipped: newEquipped });
-        setPreview(newEquipped);
-        toast.success('Equipped! ✨');
-      } catch (e) { console.error(e); }
+  // For preview, combine current equipped with slot-based preview
+  const previewEquipped = equipped;
+
+  const isOwned = (item) => {
+    if (item.price === 0) return true;
+    return ownedItems.includes(`${item.slot}:${item.id}`);
+  };
+
+  const isEquipped = (item) => equipped[item.slot] === item.id;
+
+  const handleTap = async (item) => {
+    if (item.slot === 'special') {
+      if (points < item.price) { toast.error('Not enough points!'); return; }
+      toast.success(`${item.name} applied! ✨`);
       return;
     }
+
+    if (isOwned(item)) {
+      // Equip it
+      if (isEquipped(item)) return;
+      setBusy(item.id);
+      try {
+        const newEquipped = { ...equipped, [item.slot]: item.id };
+        await updateDoc(doc(db, 'users', user.uid), { equipped: newEquipped });
+        updateProfile({ equipped: newEquipped });
+        toast.success(`${item.name} equipped! ✨`);
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to equip');
+      }
+      setBusy(null);
+      return;
+    }
+
+    // Buy it
     if (points < item.price) { toast.error('Not enough points!'); return; }
+    setBusy(item.id);
     try {
+      const key = `${item.slot}:${item.id}`;
+      const newOwned = [...ownedItems, key];
+      const newEquipped = { ...equipped, [item.slot]: item.id };
       await updateDoc(doc(db, 'users', user.uid), {
-        points: increment(-item.price),
-        ownedItems: [...ownedItems, item.id],
+        points: points - item.price,
+        ownedItems: newOwned,
+        equipped: newEquipped,
       });
-      setUserProfile({ ...userProfile, points: points - item.price, ownedItems: [...ownedItems, item.id] });
-      toast.success(`Bought ${item.name}! ✨`);
-    } catch (e) { console.error(e); }
+      updateProfile({ points: points - item.price, ownedItems: newOwned, equipped: newEquipped });
+      toast.success(`Bought & equipped ${item.name}! 🎉`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Purchase failed');
+    }
+    setBusy(null);
   };
 
   return (
@@ -74,65 +114,99 @@ export default function ShopPage() {
           style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg-secondary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <IconArrowLeft size={18} color="var(--text-secondary)" />
         </motion.button>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-main)' }}>Shop</h1>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--purple-50)', padding: '6px 12px', borderRadius: 20 }}>
+        <h1 style={{ flex: 1, fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-main)' }}>Shop</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--purple-50)', padding: '7px 14px', borderRadius: 20, border: '1px solid var(--purple-200)' }}>
           <IconStar size={14} color="var(--purple-600)" />
-          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--purple-600)' }}>{points.toLocaleString()}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--purple-600)', fontFamily: 'var(--font-main)' }}>{points.toLocaleString()}</span>
         </div>
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
         {/* Character preview */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          style={{ background: 'linear-gradient(135deg, var(--purple-50), var(--purple-100))', borderRadius: 'var(--radius-xl)', padding: 20, marginBottom: 16, border: '1.5px solid var(--purple-200)', display: 'flex', justifyContent: 'center' }}>
-          <MiniMe equipped={preview} size={110} />
+          style={{
+            background: 'linear-gradient(135deg, var(--purple-50), var(--purple-100))',
+            borderRadius: 'var(--radius-xl)', padding: '20px',
+            marginBottom: 16, border: '1.5px solid var(--purple-200)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          }}>
+          <MiniMe equipped={previewEquipped} size={110} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <span style={{ fontSize: 11, background: 'white', color: 'var(--purple-600)', padding: '3px 10px', borderRadius: 20, fontWeight: 700, border: '1px solid var(--purple-200)' }}>
+              Hat: {ITEMS.hats.find(h => h.id === (equipped.hat || 'default'))?.name || 'Default'}
+            </span>
+            <span style={{ fontSize: 11, background: 'white', color: 'var(--purple-600)', padding: '3px 10px', borderRadius: 20, fontWeight: 700, border: '1px solid var(--purple-200)' }}>
+              Color: {ITEMS.outfits.find(o => o.id === (equipped.bodyColor || 'default'))?.name || 'Purple'}
+            </span>
+          </div>
         </motion.div>
 
         {/* Tabs */}
         <div style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', padding: 4, marginBottom: 16, gap: 4 }}>
           {TABS.map((t) => (
-            <motion.button key={t} whileTap={{ scale: 0.95 }} onClick={() => setTab(t)}
-              style={{ flex: 1, padding: '8px', borderRadius: 10, background: tab === t ? 'var(--bg-primary)' : 'transparent', color: tab === t ? 'var(--purple-600)' : 'var(--text-tertiary)', fontWeight: tab === t ? 800 : 500, fontSize: 13, boxShadow: tab === t ? 'var(--shadow-sm)' : 'none', textTransform: 'capitalize' }}>
-              {t}
+            <motion.button key={t.id} whileTap={{ scale: 0.95 }} onClick={() => setTab(t.id)}
+              style={{
+                flex: 1, padding: '9px 4px', borderRadius: 10,
+                background: tab === t.id ? 'var(--bg-primary)' : 'transparent',
+                color: tab === t.id ? 'var(--purple-600)' : 'var(--text-tertiary)',
+                fontWeight: tab === t.id ? 800 : 500, fontSize: 12,
+                boxShadow: tab === t.id ? 'var(--shadow-sm)' : 'none',
+              }}>
+              {t.label}
             </motion.button>
           ))}
         </div>
 
-        {/* Items */}
+        {/* Items grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {(ITEMS[tab] || []).map((item) => {
-            const owned = ownedItems.includes(item.id) || item.price === 0;
-            const isEquipped = Object.values(equipped).includes(item.id);
-            return (
-              <motion.div key={item.id} whileTap={{ scale: 0.96 }}
-                onClick={() => handleBuy(item)}
-                style={{
-                  background: isEquipped ? 'var(--purple-50)' : 'var(--bg-primary)',
-                  borderRadius: 'var(--radius-lg)', padding: '14px 12px',
-                  border: `1.5px solid ${isEquipped ? 'var(--purple-400)' : owned ? 'var(--purple-200)' : 'var(--border)'}`,
-                  cursor: 'pointer', textAlign: 'center',
-                  opacity: item.inviteOnly && !owned ? 0.5 : 1,
-                }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>{item.icon}</div>
-                <p style={{ fontSize: 13, fontWeight: 800, color: isEquipped ? 'var(--purple-800)' : 'var(--text-primary)', fontFamily: 'var(--font-main)', marginBottom: 4 }}>{item.name}</p>
-                {item.desc && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.4 }}>{item.desc}</p>}
-                {isEquipped ? (
-                  <span style={{ fontSize: 11, background: 'var(--purple-600)', color: 'white', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>Equipped</span>
-                ) : owned || item.price === 0 ? (
-                  <span style={{ fontSize: 11, background: 'var(--green-50)', color: 'var(--green-600)', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>Tap to equip</span>
-                ) : item.inviteOnly ? (
-                  <span style={{ fontSize: 11, background: 'var(--amber-50)', color: 'var(--amber-800)', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>Invite reward</span>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                    <IconStar size={12} color="var(--purple-600)" />
-                    <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--purple-600)' }}>{item.price}</span>
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
+          <AnimatePresence mode="wait">
+            {(ITEMS[tab] || []).map((item, i) => {
+              const owned = isOwned(item);
+              const equipped_ = isEquipped(item);
+              const loading = busy === item.id;
+
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => !loading && handleTap(item)}
+                  style={{
+                    background: equipped_ ? 'var(--purple-50)' : 'var(--bg-primary)',
+                    borderRadius: 'var(--radius-lg)', padding: '16px 12px',
+                    border: `1.5px solid ${equipped_ ? 'var(--purple-400)' : owned ? 'var(--purple-200)' : 'var(--border)'}`,
+                    cursor: loading ? 'wait' : 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                  }}>
+                  {equipped_ && (
+                    <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: 'var(--purple-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <IconCheck size={12} color="white" />
+                    </div>
+                  )}
+                  <div style={{ fontSize: 34, marginBottom: 8 }}>{item.icon}</div>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: equipped_ ? 'var(--purple-800)' : 'var(--text-primary)', fontFamily: 'var(--font-main)', marginBottom: 6 }}>{item.name}</p>
+                  {item.desc && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8, lineHeight: 1.4 }}>{item.desc}</p>}
+
+                  {loading ? (
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>...</div>
+                  ) : equipped_ ? (
+                    <span style={{ fontSize: 11, background: 'var(--purple-600)', color: 'white', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>Equipped ✓</span>
+                  ) : owned ? (
+                    <span style={{ fontSize: 11, background: 'var(--green-50)', color: 'var(--green-600)', padding: '3px 10px', borderRadius: 20, fontWeight: 700, border: '1px solid var(--green-400)' }}>Tap to equip</span>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <IconStar size={12} color="var(--purple-600)" />
+                      <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--purple-600)', fontFamily: 'var(--font-main)' }}>{item.price}</span>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       </div>
       <BottomNav />

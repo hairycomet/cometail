@@ -63,7 +63,7 @@ export default function OnboardingPage() {
 
       setUserProfile(profile);
       toast.success('Welcome to Cometail! +50 pt earned 🎉');
-      setTimeout(() => navigate('/home'), 800);
+      navigate('/home', { replace: true });
     } catch (err) {
       console.error(err);
       toast.error('Something went wrong');
