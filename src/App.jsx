@@ -57,7 +57,12 @@ function AppRoutes() {
             setUser(firebaseUser);
             setUserProfile(profile);
           } else {
-            setUser({ ...firebaseUser, isNew: true });
+            // New user — get invite info from localStorage
+            const inviteCode = localStorage.getItem('cometail_invite') || 'COMET-HARRY';
+            const inviteData = JSON.parse(localStorage.getItem('cometail_invite_data') || '{"inviterNickname":"Comet","inviterUid":"admin"}');
+            localStorage.removeItem('cometail_invite');
+            localStorage.removeItem('cometail_invite_data');
+            setUser({ ...firebaseUser, isNew: true, inviteCode, inviteData });
           }
         } else {
           setUser(null);
