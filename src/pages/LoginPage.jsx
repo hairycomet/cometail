@@ -1,21 +1,17 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { signInWithCredential, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../firebase/config';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../firebase/config';
 import { useStore } from '../store';
-import { IconBrandGoogle, IconComet, IconStarFilled, IconSparkles } from '@tabler/icons-react';
+import { IconComet, IconStarFilled, IconMail, IconLock, IconEye, IconEyeOff, IconSparkles, IconUser } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
-import { useEffect } from 'react';
 
 const HARDCODED_CODES = ['COMET-HARRY', 'COMETAIL', 'HARRY2024', 'WELCOME'];
-
-// Detect environment
-const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isSafariBrowser = () => {
-  const ua = navigator.userAgent;
-  return /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|OPiOS/i.test(ua);
-};
 
 const floatingStars = [
   { top: '10%', left: '6%', size: 10, delay: 0 },
@@ -27,63 +23,15 @@ const floatingStars = [
 ];
 
 export default function LoginPage() {
-  const [checkingRedirect, setCheckingRedirect] = useState(false);
+  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [inviteValid, setInviteValid] = useState(null);
   const [inviteData, setInviteData] = useState(null);
-  const [signingIn, setSigningIn] = useState(false);
-  const setUser = useStore((s) => s.setUser);
-  const setUserProfile = useStore((s) => s.setUserProfile);
-
-  useEffect(() => {
-    const wasRedirecting = localStorage.getItem('cometail_redirecting');
-    
-    // Always check on iOS/Safari since sessionStorage gets cleared
-    // On other browsers, only check if we were redirecting
-    const shouldCheck = wasRedirecting || (isIOS() || isSafariBrowser());
-    if (!shouldCheck) return;
-
-    setCheckingRedirect(true);
-    localStorage.removeItem('cometail_redirecting');
-
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          await handleUserLogin(result.user);
-        } else {
-          setCheckingRedirect(false);
-        }
-      })
-      .catch((err) => {
-        console.error('Redirect error:', err);
-        // Don't show error if there was just no redirect result
-        if (err.code !== 'auth/no-auth-event') {
-          toast.error('Login failed. Please try again.');
-        }
-        setCheckingRedirect(false);
-      });
-  }, []);
-
-  const handleUserLogin = async (firebaseUser) => {
-    try {
-      const userRef = doc(db, 'users', firebaseUser.uid);
-      const snap = await getDoc(userRef);
-      const code = localStorage.getItem('cometail_invite') || inviteCode || 'COMET-HARRY';
-      const data = JSON.parse(localStorage.getItem('cometail_invite_data') || '{"inviterNickname":"Comet","inviterUid":"admin"}');
-      localStorage.removeItem('cometail_invite');
-      localStorage.removeItem('cometail_invite_data');
-
-      if (!snap.exists()) {
-        setUser({ ...firebaseUser, isNew: true, inviteCode: code, inviteData: data });
-      } else {
-        setUser(firebaseUser);
-        setUserProfile(snap.data());
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Something went wrong. Try again!');
-    }
-  };
+  const [loading, setLoading] = useState(false);
+  const { setUser, setUserProfile } = useStore();
 
   const checkInviteCode = async () => {
     if (!inviteCode.trim()) return;
@@ -105,64 +53,69 @@ export default function LoginPage() {
         toast.error('Invalid or expired code');
       }
     } catch {
-      // If Firebase read fails, check hardcoded
       setInviteValid(false);
       toast.error('Invalid or expired code');
     }
   };
 
-  const handleGoogleLogin = async () => {
-    if (!inviteValid) { toast.error('Enter a valid invite code first'); return; }
-
-    // Save invite info
-    localStorage.setItem('cometail_invite', inviteCode.toUpperCase());
-    localStorage.setItem('cometail_invite_data', JSON.stringify(inviteData || { inviterNickname: 'Comet', inviterUid: 'admin' }));
-
-    setSigningIn(true);
-
-    const useRedirect = isIOS() || isSafariBrowser();
-
+  const handleLogin = async () => {
+    if (!email || !password) { toast.error('Enter email and password'); return; }
+    setLoading(true);
     try {
-      if (useRedirect) {
-        localStorage.setItem('cometail_redirecting', '1');
-        await signInWithRedirect(auth, googleProvider);
-        // Will redirect away — no code runs after this
+      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const snap = await getDoc(doc(db, 'users', result.user.uid));
+      if (snap.exists()) {
+        setUser(result.user);
+        setUserProfile(snap.data());
       } else {
-        const result = await signInWithPopup(auth, googleProvider);
-        await handleUserLogin(result.user);
+        setUser({ ...result.user, isNew: true, inviteCode: 'COMET-HARRY', inviteData: { inviterNickname: 'Comet', inviterUid: 'admin' } });
       }
     } catch (err) {
-      console.error('Login error:', err);
-      localStorage.removeItem('cometail_redirecting');
-
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-        // Fallback to redirect
-        try {
-          localStorage.setItem('cometail_redirecting', '1');
-          await signInWithRedirect(auth, googleProvider);
-        } catch (e2) {
-          toast.error('Login failed. Please allow popups or try again.');
-          setSigningIn(false);
-        }
+      console.error(err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        toast.error('Wrong email or password');
+      } else if (err.code === 'auth/too-many-requests') {
+        toast.error('Too many attempts. Try again later.');
       } else {
-        toast.error('Login failed: ' + (err.message || 'Unknown error'));
-        setSigningIn(false);
+        toast.error('Login failed. Try again.');
       }
     }
+    setLoading(false);
   };
 
-  if (checkingRedirect) {
-    return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-        <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 2, repeat: Infinity }}
-          style={{ width: 60, height: 60, borderRadius: 18, background: 'linear-gradient(135deg, var(--purple-600), var(--purple-800))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, boxShadow: '0 8px 24px rgba(83,74,183,0.4)' }}>
-          ☄️
-        </motion.div>
-        <div className="spinner" />
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-main)', fontWeight: 600 }}>Signing you in...</p>
-      </div>
-    );
-  }
+  const handleSignup = async () => {
+    if (!inviteValid) { toast.error('Enter a valid invite code first'); return; }
+    if (!email) { toast.error('Enter your email'); return; }
+    if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    setLoading(true);
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      setUser({
+        ...result.user,
+        isNew: true,
+        inviteCode: inviteCode.toUpperCase(),
+        inviteData: inviteData || { inviterNickname: 'Comet', inviterUid: 'admin' },
+      });
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/email-already-in-use') {
+        toast.error('Email already registered. Try logging in!');
+        setMode('login');
+      } else if (err.code === 'auth/invalid-email') {
+        toast.error('Invalid email address');
+      } else {
+        toast.error('Signup failed. Try again.');
+      }
+    }
+    setLoading(false);
+  };
+
+  const inputStyle = {
+    width: '100%', padding: '13px 14px 13px 42px',
+    border: '1.5px solid var(--border)', borderRadius: 'var(--radius-md)',
+    fontSize: 15, background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+    outline: 'none', transition: 'border-color 0.2s', fontFamily: 'var(--font-body)',
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
@@ -184,70 +137,124 @@ export default function LoginPage() {
         style={{ width: '100%', maxWidth: 420, background: 'var(--bg-primary)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', padding: '36px 28px', position: 'relative', zIndex: 1 }}>
 
         {/* Logo */}
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15 }}
-          style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 68, height: 68, borderRadius: 20, background: 'linear-gradient(135deg, var(--purple-600), var(--purple-800))', boxShadow: '0 8px 24px rgba(83,74,183,0.35)', marginBottom: 14 }}>
-            <IconComet size={34} color="white" />
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg, var(--purple-600), var(--purple-800))', boxShadow: '0 8px 24px rgba(83,74,183,0.35)', marginBottom: 12 }}>
+            <IconComet size={32} color="white" />
           </motion.div>
-          <h1 style={{ fontFamily: 'var(--font-main)', fontSize: 26, fontWeight: 900, color: 'var(--purple-800)', letterSpacing: '-0.5px', marginBottom: 5 }}>Cometail ☄️</h1>
+          <h1 style={{ fontFamily: 'var(--font-main)', fontSize: 24, fontWeight: 900, color: 'var(--purple-800)', marginBottom: 4 }}>Cometail ☄️</h1>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Your English journey starts here</p>
-        </motion.div>
-
-        {/* Invite code */}
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Invite Code
-          </label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              value={inviteCode}
-              onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setInviteValid(null); }}
-              onKeyDown={(e) => e.key === 'Enter' && checkInviteCode()}
-              placeholder="e.g. COMET-HARRY"
-              style={{ flex: 1, padding: '12px 14px', border: `1.5px solid ${inviteValid === true ? 'var(--teal-400)' : inviteValid === false ? 'var(--red-400)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, letterSpacing: '0.05em', background: 'var(--bg-secondary)', color: 'var(--text-primary)', outline: 'none', transition: 'border-color 0.2s' }}
-            />
-            <motion.button whileTap={{ scale: 0.94 }} onClick={checkInviteCode}
-              style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 800, color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              Check
-            </motion.button>
-          </div>
-          {inviteValid === true && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              style={{ marginTop: 8, padding: '8px 12px', background: 'var(--teal-50)', borderRadius: 10, fontSize: 12, color: 'var(--teal-600)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <IconSparkles size={14} /> Invited by {inviteData?.inviterNickname || 'Comet'} — Welcome!
-            </motion.div>
-          )}
-          {inviteValid === false && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              style={{ marginTop: 8, padding: '8px 12px', background: 'var(--red-50)', borderRadius: 10, fontSize: 12, color: 'var(--red-600)', fontWeight: 700 }}>
-              Invalid code. Ask Comet for a new one!
-            </motion.div>
-          )}
         </div>
 
-        {/* Google button */}
-        <motion.button
-          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-          onClick={handleGoogleLogin}
-          disabled={signingIn || !inviteValid}
-          style={{
-            width: '100%', padding: '14px', border: 'none',
-            background: inviteValid ? 'linear-gradient(135deg, var(--purple-600), var(--purple-800))' : 'var(--bg-tertiary)',
-            borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            fontSize: 15, fontWeight: 800, color: inviteValid ? 'white' : 'var(--text-tertiary)',
-            cursor: inviteValid && !signingIn ? 'pointer' : 'not-allowed', marginBottom: 18,
-            boxShadow: inviteValid ? '0 4px 16px rgba(83,74,183,0.3)' : 'none',
-          }}>
-          {signingIn
-            ? <><div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Signing in...</>
-            : <><IconBrandGoogle size={19} /> Continue with Google</>
-          }
-        </motion.button>
+        {/* Mode toggle */}
+        <div style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: 12, padding: 4, marginBottom: 20, gap: 4 }}>
+          {[{ id: 'login', label: 'Sign in' }, { id: 'signup', label: 'Join' }].map((m) => (
+            <motion.button key={m.id} whileTap={{ scale: 0.95 }} onClick={() => setMode(m.id)}
+              style={{ flex: 1, padding: '9px', borderRadius: 9, background: mode === m.id ? 'var(--bg-primary)' : 'transparent', color: mode === m.id ? 'var(--purple-600)' : 'var(--text-tertiary)', fontWeight: mode === m.id ? 800 : 500, fontSize: 14, boxShadow: mode === m.id ? 'var(--shadow-sm)' : 'none', fontFamily: 'var(--font-main)', border: 'none', cursor: 'pointer' }}>
+              {m.label}
+            </motion.button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div key={mode} initial={{ opacity: 0, x: mode === 'login' ? -10 : 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+
+            {/* Invite code (signup only) */}
+            {mode === 'signup' && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Invite Code</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <IconSparkles size={16} color="var(--purple-400)" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)' }} />
+                    <input value={inviteCode} onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setInviteValid(null); }}
+                      onKeyDown={(e) => e.key === 'Enter' && checkInviteCode()}
+                      placeholder="e.g. COMET-HARRY"
+                      style={{ ...inputStyle, border: `1.5px solid ${inviteValid === true ? 'var(--teal-400)' : inviteValid === false ? 'var(--red-400)' : 'var(--border)'}`, fontWeight: 700, letterSpacing: '0.04em' }} />
+                  </div>
+                  <motion.button whileTap={{ scale: 0.93 }} onClick={checkInviteCode}
+                    style={{ padding: '13px 16px', background: 'var(--bg-tertiary)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 800, color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-main)' }}>
+                    Check
+                  </motion.button>
+                </div>
+                {inviteValid === true && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    style={{ marginTop: 7, padding: '7px 12px', background: 'var(--teal-50)', borderRadius: 9, fontSize: 12, color: 'var(--teal-600)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <IconSparkles size={13} /> Invited by {inviteData?.inviterNickname || 'Comet'} — Welcome!
+                  </motion.div>
+                )}
+                {inviteValid === false && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    style={{ marginTop: 7, padding: '7px 12px', background: 'var(--red-50)', borderRadius: 9, fontSize: 12, color: 'var(--red-600)', fontWeight: 700 }}>
+                    Invalid code. Ask Comet for a new one!
+                  </motion.div>
+                )}
+              </div>
+            )}
+
+            {/* Email */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Email</label>
+              <div style={{ position: 'relative' }}>
+                <IconMail size={16} color="var(--text-tertiary)" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <input
+                  type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (mode === 'login' ? handleLogin() : handleSignup())}
+                  placeholder="your@email.com"
+                  style={inputStyle}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--purple-400)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <IconLock size={16} color="var(--text-tertiary)" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <input
+                  type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (mode === 'login' ? handleLogin() : handleSignup())}
+                  placeholder={mode === 'signup' ? 'Min. 6 characters' : '••••••••'}
+                  style={{ ...inputStyle, paddingRight: 44 }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--purple-400)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+                />
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowPw(!showPw)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                  {showPw ? <IconEyeOff size={17} color="var(--text-tertiary)" /> : <IconEye size={17} color="var(--text-tertiary)" />}
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <motion.button
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              onClick={mode === 'login' ? handleLogin : handleSignup}
+              disabled={loading || (mode === 'signup' && !inviteValid)}
+              style={{
+                width: '100%', padding: '14px', border: 'none',
+                background: (mode === 'signup' && !inviteValid) ? 'var(--bg-tertiary)' : 'linear-gradient(135deg, var(--purple-600), var(--purple-800))',
+                borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                fontSize: 15, fontWeight: 800, color: (mode === 'signup' && !inviteValid) ? 'var(--text-tertiary)' : 'white',
+                cursor: loading || (mode === 'signup' && !inviteValid) ? 'not-allowed' : 'pointer',
+                marginBottom: 16, boxShadow: '0 4px 16px rgba(83,74,183,0.25)',
+                fontFamily: 'var(--font-main)',
+              }}>
+              {loading
+                ? <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                : mode === 'login' ? 'Sign in' : 'Create account'
+              }
+            </motion.button>
+
+          </motion.div>
+        </AnimatePresence>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.7 }}>
-          By joining, you agree to write English and have fun ☄️<br />
-          <span style={{ color: 'var(--purple-400)', fontWeight: 700 }}>Cometail</span> is a private community by Comet (Harry)
+          {mode === 'login'
+            ? <>New here? <motion.button whileTap={{ scale: 0.95 }} onClick={() => setMode('signup')} style={{ color: 'var(--purple-500)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>Get an invite code from Comet →</motion.button></>
+            : <>Already have an account? <motion.button whileTap={{ scale: 0.95 }} onClick={() => setMode('login')} style={{ color: 'var(--purple-500)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>Sign in →</motion.button></>
+          }
         </p>
       </motion.div>
     </div>
