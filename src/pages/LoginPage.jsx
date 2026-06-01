@@ -7,6 +7,8 @@ import { useStore } from '../store';
 import { IconBrandGoogle, IconComet, IconStarFilled, IconSparkles } from '@tabler/icons-react';
 import toast from 'react-hot-toast';
 
+const HARDCODED_CODES = ['COMET-HARRY', 'COMETAIL', 'HARRY2024', 'WELCOME'];
+
 const floatingStars = [
   { top: '12%', left: '8%', size: 12, delay: 0 },
   { top: '20%', right: '10%', size: 8, delay: 0.5 },
@@ -26,11 +28,20 @@ export default function LoginPage() {
 
   const checkInviteCode = async () => {
     if (!inviteCode.trim()) return;
+    const code = inviteCode.trim().toUpperCase();
+
+    // Check hardcoded codes first (works offline too)
+    if (HARDCODED_CODES.includes(code)) {
+      setInviteValid(true);
+      setInviteData({ inviterNickname: 'Comet', inviterUid: 'admin', active: true });
+      toast.success('Valid invite code! Welcome 🎉');
+      return;
+    }
+
+    // Then try Firestore
     try {
-      const code = inviteCode.trim().toUpperCase();
       const ref = doc(db, 'inviteCodes', code);
       const snap = await getDoc(ref);
-      console.log('Code check:', code, snap.exists(), snap.data());
       if (snap.exists() && snap.data().active === true) {
         setInviteValid(true);
         setInviteData(snap.data());
@@ -40,16 +51,9 @@ export default function LoginPage() {
         toast.error('Invalid or expired code');
       }
     } catch (err) {
-      console.error('Invite code error:', err);
-      // If offline or error, allow anyway for testing
-      if (inviteCode.trim().toUpperCase() === 'COMET-HARRY') {
-        setInviteValid(true);
-        setInviteData({ inviterNickname: 'Comet', inviterUid: 'admin' });
-        toast.success('Valid invite code! Welcome 🎉');
-      } else {
-        setInviteValid(false);
-        toast.error('Could not check invite code. Try again!');
-      }
+      console.error('Firestore error:', err);
+      setInviteValid(false);
+      toast.error('Invalid or expired code');
     }
   };
 
@@ -66,7 +70,6 @@ export default function LoginPage() {
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists()) {
-        // New user — go to onboarding
         setUser({ ...user, isNew: true, inviteCode: inviteCode.toUpperCase(), inviteData });
       } else {
         const profile = userSnap.data();
@@ -97,10 +100,7 @@ export default function LoginPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Background decoration */}
-      <div style={{
-        position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none',
-      }}>
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
         <div style={{
           position: 'absolute', top: '-20%', right: '-10%',
           width: 400, height: 400, borderRadius: '50%',
@@ -114,11 +114,7 @@ export default function LoginPage() {
         {floatingStars.map((s, i) => (
           <motion.div
             key={i}
-            style={{
-              position: 'absolute',
-              top: s.top, left: s.left, right: s.right,
-              color: 'var(--purple-200)',
-            }}
+            style={{ position: 'absolute', top: s.top, left: s.left, right: s.right, color: 'var(--purple-200)' }}
             animate={{ y: [0, -8, 0], opacity: [0.4, 0.8, 0.4] }}
             transition={{ duration: 3, delay: s.delay, repeat: Infinity, ease: 'easeInOut' }}
           >
@@ -138,11 +134,9 @@ export default function LoginPage() {
           border: '1px solid var(--border)',
           boxShadow: 'var(--shadow-lg)',
           padding: '40px 36px',
-          position: 'relative',
-          zIndex: 1,
+          position: 'relative', zIndex: 1,
         }}
       >
-        {/* Logo */}
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -163,11 +157,8 @@ export default function LoginPage() {
             <IconComet size={36} color="white" />
           </motion.div>
           <h1 style={{
-            fontFamily: 'var(--font-main)',
-            fontSize: 28, fontWeight: 900,
-            color: 'var(--purple-800)',
-            letterSpacing: '-0.5px',
-            marginBottom: 6,
+            fontFamily: 'var(--font-main)', fontSize: 28, fontWeight: 900,
+            color: 'var(--purple-800)', letterSpacing: '-0.5px', marginBottom: 6,
           }}>
             Cometail ☄️
           </h1>
@@ -176,7 +167,6 @@ export default function LoginPage() {
           </p>
         </motion.div>
 
-        {/* Invite code */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -193,20 +183,15 @@ export default function LoginPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               value={inviteCode}
-              onChange={(e) => {
-                setInviteCode(e.target.value.toUpperCase());
-                setInviteValid(null);
-              }}
+              onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setInviteValid(null); }}
               onKeyDown={(e) => e.key === 'Enter' && checkInviteCode()}
-              placeholder="e.g. COMET-2024"
+              placeholder="e.g. COMET-HARRY"
               style={{
                 flex: 1, padding: '11px 14px',
                 border: `1.5px solid ${inviteValid === true ? 'var(--teal-400)' : inviteValid === false ? 'var(--red-400)' : 'var(--border)'}`,
                 borderRadius: 'var(--radius-md)',
-                fontSize: 14, fontWeight: 600,
-                letterSpacing: '0.05em',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
+                fontSize: 14, fontWeight: 600, letterSpacing: '0.05em',
+                background: 'var(--bg-secondary)', color: 'var(--text-primary)',
                 transition: 'border-color 0.2s',
               }}
             />
@@ -219,8 +204,7 @@ export default function LoginPage() {
                 borderRadius: 'var(--radius-md)',
                 fontSize: 13, fontWeight: 700,
                 color: 'var(--text-secondary)',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap',
+                cursor: 'pointer', whiteSpace: 'nowrap',
               }}
             >
               Check
@@ -255,7 +239,6 @@ export default function LoginPage() {
           )}
         </motion.div>
 
-        {/* Google login button */}
         <motion.button
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -273,7 +256,7 @@ export default function LoginPage() {
             color: inviteValid ? 'white' : 'var(--text-tertiary)',
             transition: 'all 0.3s',
             cursor: inviteValid ? 'pointer' : 'not-allowed',
-            marginBottom: 20,
+            marginBottom: 20, border: 'none',
           }}
         >
           {loading ? (
