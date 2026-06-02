@@ -5,37 +5,38 @@ export const invitationCodes = ['COMET2026', 'COMETKIDS', 'IELTS55', 'TOEFL100']
 export const storySlides = [
   {
     id: 'spark',
-    titleKo: '첫 문장은 작은 별빛이 됩니다',
-    titleEn: 'Your first sentence becomes starlight',
-    bodyKo: 'Cometail Universe에서는 네가 쓰는 영어 한 문장마다 작은 별빛이 태어나요.',
-    bodyEn: 'In the Cometail Universe, every English sentence you write creates a small piece of starlight.',
+    titleKo: '한 문장이 별빛이 되는 순간',
+    titleEn: 'Every sentence becomes starlight',
+    bodyKo: 'Cometail에서는 네가 남기는 영어 한 문장이 작은 별빛으로 태어나요. 완벽하지 않아도 괜찮아요. 오늘 쓴 한 줄이 너의 우주를 밝히는 첫 번째 빛이 됩니다.',
+    bodyEn: 'In Cometail, every English sentence you write becomes a small piece of starlight. It does not need to be perfect. One honest sentence can light up your universe.',
     emoji: '✨',
   },
   {
     id: 'buddy',
-    titleKo: '너의 Comet Buddy를 만나보세요',
+    titleKo: '너의 Comet Buddy가 깨어나요',
     titleEn: 'Meet your Comet Buddy',
-    bodyKo: '일기를 쓰고 피드백을 복습할수록 이 작은 커멧은 더 밝고 강하게 성장해요.',
-    bodyEn: 'As you write, review feedback, and keep your streak, your Comet Buddy grows brighter.',
+    bodyKo: 'Comet Buddy는 네 영어 성장과 함께 자라는 별똥별 친구예요. 일기를 쓰고, 피드백을 받고, 표현을 복습할수록 꼬리는 더 길어지고 더 밝아집니다.',
+    bodyEn: 'Your Comet Buddy grows with your English. As you write, receive feedback, and review useful expressions, its tail becomes brighter and stronger.',
     emoji: '☄️',
   },
   {
     id: 'planet',
-    titleKo: '별빛으로 너의 우주를 넓혀요',
-    titleEn: 'Expand your universe with starlight',
-    bodyKo: '모은 별빛은 아이템뿐 아니라 우주 확장과 너만의 행성 만들기에 투자할 수 있어요.',
-    bodyEn: 'You can use starlight for items, universe expansion, and eventually your own planet.',
+    titleKo: '별빛을 모아 너의 우주를 넓혀요',
+    titleEn: 'Build your universe with starlight',
+    bodyKo: '모은 별빛은 아이템을 얻는 데만 쓰이지 않아요. 너의 우주에 투자하고, 더 넓은 공간을 열고, 언젠가는 너만의 행성까지 만들 수 있어요.',
+    bodyEn: 'Starlight is not only for items. You can invest it in your universe, open new space, and eventually create your own planet.',
     emoji: '🪐',
   },
   {
     id: 'galaxy',
-    titleKo: '모두가 같은 우주에서 빛납니다',
-    titleEn: 'Everyone shines in the same universe',
-    bodyKo: '레벨이 오르면 Cometail Universe에 들어가 다른 학생들의 행성을 구경하고 자극을 받을 수 있어요.',
-    bodyEn: 'As you level up, you can enter the shared Cometail Universe and see other learners shine.',
+    titleKo: '모두가 같은 우주에서 함께 빛나요',
+    titleEn: 'Shine together in the Cometail Universe',
+    bodyKo: '레벨이 오르면 공용 우주에 들어가 다른 학생들의 커멧과 행성을 볼 수 있어요. 서로의 성장을 보며 자극을 받고, 조용히 응원하며 함께 앞으로 나아갑니다.',
+    bodyEn: 'As you level up, you can enter the shared universe, see other learners’ comets and planets, and feel motivated by their progress.',
     emoji: '🌌',
   },
 ]
+
 
 export const universeMilestones = [
   { level: 5, title: 'Enter the Universe', desc: '우주 공간 구경과 응원 보내기 해금' },
@@ -135,6 +136,7 @@ export const sampleUser = {
   completedQuests: [],
   savedExpressions: ['I was proud of myself.', 'I see what you mean.'],
   inviteCode: 'COMET2026',
+  inviteTickets: 1,
   createdAt: dayjs().subtract(10, 'day').toISOString(),
 }
 

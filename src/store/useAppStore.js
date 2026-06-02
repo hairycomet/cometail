@@ -11,6 +11,8 @@ const randomItem = owned => {
   return pool[Math.floor(Math.random() * Math.max(1, pool.length))]
 }
 const effectiveLanguage = user => user.level >= 20 ? 'en' : user.appLanguage || 'ko'
+const teacherEmails = ['hairycomet@gmail.com']
+const isTeacherEmail = email => teacherEmails.includes((email || '').trim().toLowerCase())
 
 export const useAppStore = create(
   persist(
@@ -30,11 +32,11 @@ export const useAppStore = create(
         user: {
           ...state.user,
           email,
-          isAdmin: email === 'hairycomet@gmail.com' || email.includes('teacher') || email.includes('admin'),
+          isAdmin: isTeacherEmail(email),
           hasOnboarded: email === state.user.email ? state.user.hasOnboarded : true,
         },
       })),
-      signup: ({ email }) => set(state => ({
+      signup: ({ email, inviteCode }) => set(state => ({
         isAuthed: true,
         user: {
           ...state.user,
@@ -51,6 +53,9 @@ export const useAppStore = create(
           equipped: [],
           completedMissions: [],
           completedQuests: [],
+          inviteTickets: 1,
+          inviteCode,
+          isAdmin: false,
         },
       })),
       logout: () => set({ isAuthed: false }),
