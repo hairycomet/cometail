@@ -32,7 +32,7 @@ export default function OnboardingPage() {
   return (
     <div className="onboarding-cinematic refined-onboarding">
       {isStory ? (
-        <section className="story-card refined-story-card">
+        <section className="story-card refined-story-card v5-story-card">
           <div className="story-animation refined-story-animation">
             <div className="story-stars" aria-hidden="true"><i /><i /><i /><i /><i /></div>
             <motion.div className="story-planet" animate={{ scale: [1, 1.06, 1], rotate: [0, 4, 0] }} transition={{ duration: 4, repeat: Infinity }} />
@@ -50,7 +50,7 @@ export default function OnboardingPage() {
             </motion.div>
           </AnimatePresence>
           <div className="story-actions no-skip-actions">
-            <button className="primary-button" onClick={next}>{step === storySlides.length - 1 ? '내 커멧 만들기' : '계속 보기'} <IconChevronRight size={18} /></button>
+            <button className="primary-button" onClick={next}>{step === storySlides.length - 1 ? '내 Comet Buddy 만들기' : '다음 이야기 보기'} <IconChevronRight size={18} /></button>
           </div>
         </section>
       ) : (

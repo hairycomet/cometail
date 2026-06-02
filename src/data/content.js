@@ -4,38 +4,47 @@ export const invitationCodes = ['COMET2026', 'COMETKIDS', 'IELTS55', 'TOEFL100']
 
 export const storySlides = [
   {
+    id: 'gate',
+    titleKo: '초대받은 사람만 들어오는 작은 영어 우주',
+    titleEn: 'Welcome to your private English universe',
+    bodyKo: 'Cometail은 아무나 들어오는 공개 앱이 아니에요. 선생님에게 초대받은 학생들이 각자의 영어를 조용히 쌓고, 서로의 성장을 보며 자극을 받는 프라이빗 공간이에요.',
+    bodyEn: 'Cometail is an invite-only English universe where each learner builds steady progress with teacher feedback and quiet motivation from the community.',
+    emoji: '🌌',
+  },
+  {
     id: 'spark',
-    titleKo: '한 문장이 별빛이 되는 순간',
+    titleKo: '네가 쓰는 한 문장은 별빛이 돼요',
     titleEn: 'Every sentence becomes starlight',
-    bodyKo: 'Cometail에서는 네가 남기는 영어 한 문장이 작은 별빛으로 태어나요. 완벽하지 않아도 괜찮아요. 오늘 쓴 한 줄이 너의 우주를 밝히는 첫 번째 빛이 됩니다.',
-    bodyEn: 'In Cometail, every English sentence you write becomes a small piece of starlight. It does not need to be perfect. One honest sentence can light up your universe.',
+    bodyKo: '완벽한 영어가 아니어도 괜찮아요. 오늘 남긴 한 줄, 다시 고쳐 쓴 한 문장, 선생님 피드백을 복습한 순간이 모두 작은 별빛으로 쌓입니다.',
+    bodyEn: 'Your English does not need to be perfect. Every sentence, revision, and review becomes starlight that powers your progress.',
     emoji: '✨',
   },
   {
     id: 'buddy',
-    titleKo: '너의 Comet Buddy가 깨어나요',
+    titleKo: 'Comet Buddy가 너와 함께 성장해요',
     titleEn: 'Meet your Comet Buddy',
-    bodyKo: 'Comet Buddy는 네 영어 성장과 함께 자라는 별똥별 친구예요. 일기를 쓰고, 피드백을 받고, 표현을 복습할수록 꼬리는 더 길어지고 더 밝아집니다.',
-    bodyEn: 'Your Comet Buddy grows with your English. As you write, receive feedback, and review useful expressions, its tail becomes brighter and stronger.',
+    bodyKo: 'Comet Buddy는 네 영어 성장과 함께 자라는 별똥별 친구예요. 레벨이 오를수록 꼬리는 길어지고, 스트릭이 이어질수록 더 밝게 빛나요.',
+    bodyEn: 'Your Comet Buddy grows with your English. Its tail becomes longer with your level and brighter with your streak.',
     emoji: '☄️',
   },
   {
     id: 'planet',
-    titleKo: '별빛을 모아 너의 우주를 넓혀요',
-    titleEn: 'Build your universe with starlight',
-    bodyKo: '모은 별빛은 아이템을 얻는 데만 쓰이지 않아요. 너의 우주에 투자하고, 더 넓은 공간을 열고, 언젠가는 너만의 행성까지 만들 수 있어요.',
-    bodyEn: 'Starlight is not only for items. You can invest it in your universe, open new space, and eventually create your own planet.',
+    titleKo: '별빛을 모아 너의 행성을 만들어요',
+    titleEn: 'Build your planet with starlight',
+    bodyKo: '모은 별빛은 아이템을 얻는 데만 쓰이지 않아요. 공용 우주에 투자하고, 더 넓은 공간을 열고, 언젠가는 너만의 행성을 만들고 꾸밀 수 있어요.',
+    bodyEn: 'Starlight is not only for items. You can invest it in the shared universe and eventually create and decorate your own planet.',
     emoji: '🪐',
   },
   {
     id: 'galaxy',
-    titleKo: '모두가 같은 우주에서 함께 빛나요',
+    titleKo: '모두의 커멧이 같은 우주에서 빛나요',
     titleEn: 'Shine together in the Cometail Universe',
-    bodyKo: '레벨이 오르면 공용 우주에 들어가 다른 학생들의 커멧과 행성을 볼 수 있어요. 서로의 성장을 보며 자극을 받고, 조용히 응원하며 함께 앞으로 나아갑니다.',
-    bodyEn: 'As you level up, you can enter the shared universe, see other learners’ comets and planets, and feel motivated by their progress.',
-    emoji: '🌌',
+    bodyKo: '레벨이 오르면 공용 우주에 들어가 다른 학생들의 커멧과 행성을 볼 수 있어요. 일기 내용은 기본적으로 비공개지만, 서로의 꾸준함과 성장은 함께 볼 수 있어요.',
+    bodyEn: 'As you level up, you can enter the shared universe and see other learners’ comets and planets. Diary content stays private by default, but growth can inspire everyone.',
+    emoji: '🛰️',
   },
 ]
+
 
 
 export const universeMilestones = [

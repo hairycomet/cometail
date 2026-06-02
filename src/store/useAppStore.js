@@ -11,8 +11,11 @@ const randomItem = owned => {
   return pool[Math.floor(Math.random() * Math.max(1, pool.length))]
 }
 const effectiveLanguage = user => user.level >= 20 ? 'en' : user.appLanguage || 'ko'
-const teacherEmails = ['hairycomet@gmail.com']
-const isTeacherEmail = email => teacherEmails.includes((email || '').trim().toLowerCase())
+const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || 'hairycomet@gmail.com')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean)
+const isTeacherEmail = email => adminEmails.includes((email || '').trim().toLowerCase())
 
 export const useAppStore = create(
   persist(
