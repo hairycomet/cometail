@@ -167,6 +167,11 @@ export const sampleUser = {
   completedMissions: ['daily_feedback'],
   completedQuests: [],
   savedExpressions: ['I was proud of myself.', 'I see what you mean.'],
+  reviewedExpressions: ['I see what you mean.'],
+  typingRecords: [
+    { id: 't1', wpm: 38, accuracy: 96, seconds: 42, completed: true, createdAt: dayjs().subtract(1, 'day').toISOString() },
+    { id: 't2', wpm: 32, accuracy: 92, seconds: 55, completed: true, createdAt: dayjs().subtract(3, 'day').toISOString() },
+  ],
   inviteCode: 'COMET2026',
   inviteTickets: 1,
   usedInviteTickets: 0,
@@ -193,4 +198,29 @@ export const sampleStudents = [
   { id: 's2', name: 'IELTS Learner', cometName: 'Nova', streak: 11, points: 1450, level: 15, diaryCount: 22, lastActive: 'Today', risk: 'Great', planet: 'Tiny Moon', themeColor: 'sky' },
   { id: 's3', name: 'TOEFL Star', cometName: 'Aster', streak: 24, points: 2350, level: 24, diaryCount: 40, lastActive: 'Today', risk: 'Great', planet: 'Blue Planet', themeColor: 'mint' },
   { id: 's4', name: 'Young Writer', cometName: 'Sol', streak: 2, points: 3180, level: 32, diaryCount: 51, lastActive: 'Yesterday', risk: 'Needs reminder', planet: 'Rose Planet', themeColor: 'rose' },
+]
+
+
+export const feedbackTemplates = [
+  { id: 'diary_basic', label: 'Diary correction', fields: ['Corrected sentence', 'Natural version', 'Useful expression', 'Teacher comment'] },
+  { id: 'toefl', label: 'TOEFL writing', fields: ['Grammar', 'Logic', 'TOEFL style', 'Idea feedback'] },
+  { id: 'childcare', label: 'Childcare English', fields: ['Corrected version', 'Natural educator version', 'Key sentence'] },
+]
+
+export const betaReadinessItems = [
+  'Mobile login and invite flow',
+  'Student diary flow',
+  'Teacher feedback queue',
+  'Wardrobe and shop flow',
+  'Universe and planet preview',
+  'Growth report preview',
+]
+
+export const starlightRules = [
+  { action: 'Write a diary', reward: 10 },
+  { action: 'Submit homework', reward: 15 },
+  { action: 'Complete typing practice', reward: 5 },
+  { action: 'Review feedback expression', reward: 5 },
+  { action: 'Complete daily mission', reward: 10 },
+  { action: 'Complete weekly quest', reward: 60 },
 ]

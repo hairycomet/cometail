@@ -14,6 +14,7 @@ import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
 import SettingsPage from './pages/SettingsPage'
 import NotebookPage from './pages/NotebookPage'
+import ReportsPage from './pages/ReportsPage'
 import { useAppStore } from './store/useAppStore'
 
 function ProtectedRoute({ children }) {
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="notebook" element={<NotebookPage />} />
+        <Route path="reports" element={<ReportsPage />} />
         <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

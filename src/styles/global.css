@@ -710,3 +710,53 @@ input:focus, textarea:focus, select:focus { border-color: rgba(124,58,237,.5); b
   .story-copy p { font-size:15px; }
   .invite-code-table div { grid-template-columns:1fr; }
 }
+
+/* v7 student beta additions */
+.bottom-nav.eight { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.hide-mobile { display: inline-flex; }
+.report-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+.report-metric { border:1px solid rgba(124,58,237,.16); border-radius: 24px; padding:18px; background:rgba(255,255,255,.72); display:flex; gap:14px; align-items:flex-start; box-shadow:0 16px 40px rgba(30,41,59,.08); }
+.report-metric svg { color: var(--tone-primary, #7c3aed); flex-shrink:0; }
+.report-metric strong { display:block; font-size:28px; line-height:1; }
+.report-metric span { display:block; font-weight:800; margin-top:6px; }
+.report-metric small { display:block; color:var(--muted); margin-top:4px; }
+.report-hero { display:flex; align-items:center; justify-content:space-between; gap:24px; overflow:hidden; }
+.report-ring { width:116px; height:116px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 30% 25%, #fff, var(--tone-soft, #ede9fe)); box-shadow: inset 0 0 0 10px rgba(255,255,255,.5), 0 18px 50px rgba(124,58,237,.18); }
+.report-ring strong { font-size:38px; }
+.report-ring span { font-weight:800; color:var(--muted); margin-top:-24px; }
+.checklist-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; }
+.checklist-grid div { padding:12px 14px; border-radius:16px; background:rgba(124,58,237,.08); font-weight:800; }
+.sticky-filter { position:sticky; top:72px; z-index:5; background:rgba(255,255,255,.82); backdrop-filter: blur(16px); padding:8px; border-radius:22px; }
+.privacy-note { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:999px; background:rgba(15,23,42,.06); color:var(--muted); font-size:13px; font-weight:800; margin-top:8px; }
+.privacy-card { border:1px solid rgba(124,58,237,.14); border-radius:22px; padding:14px; background:rgba(255,255,255,.72); display:grid; gap:10px; }
+.toggle-line { display:flex; align-items:center; gap:10px; font-weight:900; }
+.record-row { display:flex; flex-wrap:wrap; gap:10px; }
+.record-row span { padding:10px 12px; border-radius:999px; background:rgba(14,165,233,.1); font-weight:800; }
+.expression-bank span { display:inline-flex; align-items:center; gap:8px; }
+.expression-bank button { border:0; border-radius:999px; padding:5px 9px; font-weight:800; cursor:pointer; background:rgba(124,58,237,.12); color:var(--tone-primary, #7c3aed); }
+.notebook-card dd button { margin-left:8px; border:0; border-radius:999px; padding:5px 9px; font-weight:800; cursor:pointer; background:rgba(124,58,237,.12); color:var(--tone-primary, #7c3aed); }
+.upgraded-typing-card textarea, .upgraded-write-page textarea { font-size:16px; }
+
+@media (max-width: 760px) {
+  .hide-mobile { display:none; }
+  .topbar { padding:10px 12px; }
+  .brand span:last-child { display:none; }
+  .topbar-actions { gap:6px; }
+  .topbar-actions .point-chip { display:none; }
+  .screen { padding: 14px 14px 96px; }
+  .page-header, .report-hero { flex-direction:column; align-items:stretch; }
+  .page-header h1 { font-size:30px; }
+  .hero-card { padding:18px; }
+  .hero-actions, .header-actions, .typing-actions { flex-direction:column; align-items:stretch; }
+  .primary-button, .secondary-button { width:100%; justify-content:center; min-height:46px; }
+  .bottom-nav { left: 10px; right: 10px; bottom: 10px; border-radius: 24px; padding:8px; overflow-x:auto; display:flex !important; justify-content:flex-start; }
+  .bottom-nav a { min-width:72px; }
+  .bottom-nav a span { font-size:11px; }
+  .home-grid, .admin-grid, .universe-grid, .wardrobe-layout, .write-page { grid-template-columns:1fr !important; }
+  .sticky-preview, .sticky-filter { position:static; }
+  .planet-map, .shop-grid, .owned-item-grid, .report-grid { grid-template-columns:1fr !important; }
+  .universe-stage { min-height: 560px; }
+  .filter-pills { overflow-x:auto; flex-wrap:nowrap; justify-content:flex-start; padding-bottom:4px; }
+  .filter-pills button { white-space:nowrap; }
+  .report-ring { width:96px; height:96px; align-self:center; }
+}

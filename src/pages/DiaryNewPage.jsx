@@ -9,27 +9,33 @@ export default function DiaryNewPage() {
   const { currentPrompt, rotatePrompt, addDiary, user } = useAppStore()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [wantsFeedback, setWantsFeedback] = useState(false)
   const [visibility, setVisibility] = useState(user.diaryVisibilityDefault || 'private')
   const score = useMemo(() => scoreWriting(content), [content])
 
+  const finalVisibility = wantsFeedback ? 'teacher' : visibility
   const submit = event => {
     event.preventDefault()
     if (content.trim().length < 10) return
-    addDiary({ title, content, visibility })
+    addDiary({ title, content, visibility: finalVisibility })
     navigate('/diary')
   }
 
   return (
-    <div className="write-page">
+    <div className="write-page upgraded-write-page">
       <section className="writing-card">
         <div className="prompt-card">
-          <div><p className="eyebrow">Today’s prompt</p><h1>{currentPrompt}</h1></div>
-          <button className="icon-button" onClick={rotatePrompt} type="button"><IconRefresh size={20} /></button>
+          <div><p className="eyebrow">Today’s prompt</p><h1>{currentPrompt}</h1><p>어렵게 쓰지 않아도 괜찮아요. 오늘의 한 문장이 별빛이 됩니다.</p></div>
+          <button className="icon-button" onClick={rotatePrompt} type="button" aria-label="Change prompt"><IconRefresh size={20} /></button>
         </div>
         <form onSubmit={submit} className="writing-form">
           <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
           <textarea placeholder="Write freely. Mistakes are welcome here." value={content} onChange={e => setContent(e.target.value)} rows="12" />
-          <label className="visibility-select">공개 범위<select value={visibility} onChange={e => setVisibility(e.target.value)}><option value="private">나만 보기</option><option value="teacher">선생님에게 제출</option><option value="class">클래스 피드 공개</option><option value="community">Cometail Universe 공개</option></select></label>
+          <div className="privacy-card">
+            <label className="toggle-line"><input type="checkbox" checked={wantsFeedback} onChange={e => setWantsFeedback(e.target.checked)} /> 선생님 피드백을 받고 싶어요</label>
+            <label className="visibility-select">공개 범위<select value={visibility} onChange={e => setVisibility(e.target.value)} disabled={wantsFeedback}><option value="private">나만 보기</option><option value="class">클래스 피드 공개</option><option value="community">Cometail Universe 공개</option></select></label>
+            <p>{wantsFeedback ? '피드백 요청 글은 선생님에게 제출됩니다.' : '기본값은 나만 보기입니다. 원할 때만 공개하세요.'}</p>
+          </div>
           <button className="primary-button" disabled={content.trim().length < 10}><IconSparkles size={18} /> 저장하고 10 Starlight 받기</button>
         </form>
       </section>

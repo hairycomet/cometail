@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { IconMoonStars, IconSun, IconShieldStar, IconSettings, IconHanger } from '@tabler/icons-react'
+import { IconMoonStars, IconSun, IconShieldStar, IconSettings, IconHanger, IconChartBar } from '@tabler/icons-react'
 import BottomNav from './BottomNav'
 import { useAppStore } from '../store/useAppStore'
 
@@ -17,6 +17,7 @@ export default function AppShell() {
         </Link>
         <div className="topbar-actions">
           <Link className="teacher-pill" to="/wardrobe"><IconHanger size={17} /> 꾸미기</Link>
+          <Link className="teacher-pill hide-mobile" to="/reports"><IconChartBar size={17} /> 리포트</Link>
           {user.isAdmin && <Link className={`teacher-pill ${isAdminPage ? 'active' : ''}`} to="/admin"><IconShieldStar size={17} /> Teacher</Link>}
           <Link className="icon-button" to="/settings" aria-label="Settings"><IconSettings size={20} /></Link>
           <button className="icon-button" onClick={toggleTheme} aria-label="Toggle theme">

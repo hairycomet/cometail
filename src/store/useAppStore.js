@@ -42,6 +42,8 @@ export const useAppStore = create(
       missions: dailyMissions,
       quests: weeklyQuests,
       inviteCodes: inviteCodeRecords,
+      typingRecords: sampleUser.typingRecords || [],
+      notifications: [],
       theme: 'light',
       isAuthed: false,
       currentPrompt: diaryPrompts[0],
@@ -84,6 +86,8 @@ export const useAppStore = create(
             streak: 0,
             longestStreak: 0,
             hasOnboarded: false,
+            typingRecords: [],
+            reviewedExpressions: [],
             owned: [],
             equipped: [],
             planetDecor: [],
@@ -263,6 +267,43 @@ export const useAppStore = create(
         set(state => ({ homework: [{ id: crypto.randomUUID(), status: 'open', reward: 15, ...homework }, ...state.homework] }))
         toast.success('숙제를 등록했어요')
       },
+
+      completeTypingPractice: record => {
+        const reward = record?.completed ? 5 : 0
+        set(state => {
+          const newPoints = state.user.points + reward
+          const totalEarned = (state.user.totalEarned || state.user.points) + reward
+          const completedMissions = reward ? [...new Set([...(state.user.completedMissions || []), 'daily_typing'])] : state.user.completedMissions
+          const typingRecord = { id: crypto.randomUUID(), createdAt: dayjs().toISOString(), ...record }
+          return {
+            typingRecords: [typingRecord, ...(state.typingRecords || [])],
+            user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedMissions, typingRecords: [typingRecord, ...(state.user.typingRecords || [])] },
+          }
+        })
+        if (reward) toast.success('+5 Starlight')
+      },
+      reviewExpression: expression => {
+        if (!expression) return
+        if (get().user.reviewedExpressions?.includes(expression)) { toast('이미 복습했어요'); return }
+        set(state => {
+          const newPoints = state.user.points + 5
+          const totalEarned = (state.user.totalEarned || state.user.points) + 5
+          return {
+            user: {
+              ...state.user,
+              points: newPoints,
+              totalEarned,
+              level: calcLevel(totalEarned),
+              reviewedExpressions: [...(state.user.reviewedExpressions || []), expression],
+              completedMissions: [...new Set([...(state.user.completedMissions || []), 'daily_feedback'])],
+            },
+          }
+        })
+        toast.success('+5 Starlight for review')
+      },
+      updateHomeworkStatus: (id, status) => {
+        set(state => ({ homework: state.homework.map(item => item.id === id ? { ...item, status } : item) }))
+      },
       investUniverse: amount => {
         const value = Number(amount)
         if (!value || get().user.points < value) { toast.error('투자할 별빛이 부족해요'); return }
@@ -278,6 +319,6 @@ export const useAppStore = create(
         toast.success(`행성에 ${value} Starlight 투자 완료`)
       },
     }),
-    { name: 'cometail-v6-full-student-test-store' },
+    { name: 'cometail-v7-student-beta-store' },
   ),
 )

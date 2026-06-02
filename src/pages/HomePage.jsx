@@ -27,6 +27,7 @@ export default function HomePage() {
             <Link className="primary-button" to="/diary/new"><IconPencilPlus size={18} /> {lang === 'ko' ? '일기 쓰기' : 'Write Diary'}</Link>
             <Link className="secondary-button" to="/wardrobe"><IconHanger size={18} /> 내 캐릭터 꾸미기</Link>
             <Link className="secondary-button" to="/universe"><IconPlanet size={18} /> Universe</Link>
+            <Link className="secondary-button" to="/reports"><IconChartBar size={18} /> Growth Report</Link>
           </div>
         </div>
         <CometAvatar equipped={user.equipped} level={user.level} />
@@ -45,7 +46,7 @@ export default function HomePage() {
           <p className={user.level >= 10 ? 'unlocked' : 'locked'}><strong>Level 10</strong><span>내 커멧 띄우기</span></p>
           <p className={planetUnlocked ? 'unlocked' : 'locked'}><strong>Level 20</strong><span>내 행성 만들기</span></p>
         </div>
-        <p className="muted">포인트가 남으면 Universe 탭에서 우주와 행성에 투자할 수 있어요.</p>
+        <p className="muted">남는 Starlight는 상점뿐 아니라 공용 우주와 내 행성에도 투자할 수 있어요.</p>
       </section>
 
       <section className="panel">
