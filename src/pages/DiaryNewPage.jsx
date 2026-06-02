@@ -6,15 +6,16 @@ import { scoreWriting } from '../utils/stats'
 
 export default function DiaryNewPage() {
   const navigate = useNavigate()
-  const { currentPrompt, rotatePrompt, addDiary } = useAppStore()
+  const { currentPrompt, rotatePrompt, addDiary, user } = useAppStore()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [visibility, setVisibility] = useState(user.diaryVisibilityDefault || 'private')
   const score = useMemo(() => scoreWriting(content), [content])
 
   const submit = event => {
     event.preventDefault()
     if (content.trim().length < 10) return
-    addDiary({ title, content })
+    addDiary({ title, content, visibility })
     navigate('/diary')
   }
 
@@ -28,7 +29,8 @@ export default function DiaryNewPage() {
         <form onSubmit={submit} className="writing-form">
           <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
           <textarea placeholder="Write freely. Mistakes are welcome here." value={content} onChange={e => setContent(e.target.value)} rows="12" />
-          <button className="primary-button" disabled={content.trim().length < 10}><IconSparkles size={18} /> 저장하고 10pt 받기</button>
+          <label className="visibility-select">공개 범위<select value={visibility} onChange={e => setVisibility(e.target.value)}><option value="private">나만 보기</option><option value="teacher">선생님에게 제출</option><option value="class">클래스 피드 공개</option><option value="community">Cometail Universe 공개</option></select></label>
+          <button className="primary-button" disabled={content.trim().length < 10}><IconSparkles size={18} /> 저장하고 10 Starlight 받기</button>
         </form>
       </section>
       <aside className="writing-sidebar">

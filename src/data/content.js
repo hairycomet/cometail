@@ -2,16 +2,58 @@ import dayjs from 'dayjs'
 
 export const invitationCodes = ['COMET2026', 'COMETKIDS', 'IELTS55', 'TOEFL100']
 
+export const storySlides = [
+  {
+    id: 'spark',
+    titleKo: '첫 문장은 작은 별빛이 됩니다',
+    titleEn: 'Your first sentence becomes starlight',
+    bodyKo: 'Cometail Universe에서는 네가 쓰는 영어 한 문장마다 작은 별빛이 태어나요.',
+    bodyEn: 'In the Cometail Universe, every English sentence you write creates a small piece of starlight.',
+    emoji: '✨',
+  },
+  {
+    id: 'buddy',
+    titleKo: '너의 Comet Buddy를 만나보세요',
+    titleEn: 'Meet your Comet Buddy',
+    bodyKo: '일기를 쓰고 피드백을 복습할수록 이 작은 커멧은 더 밝고 강하게 성장해요.',
+    bodyEn: 'As you write, review feedback, and keep your streak, your Comet Buddy grows brighter.',
+    emoji: '☄️',
+  },
+  {
+    id: 'planet',
+    titleKo: '별빛으로 너의 우주를 넓혀요',
+    titleEn: 'Expand your universe with starlight',
+    bodyKo: '모은 별빛은 아이템뿐 아니라 우주 확장과 너만의 행성 만들기에 투자할 수 있어요.',
+    bodyEn: 'You can use starlight for items, universe expansion, and eventually your own planet.',
+    emoji: '🪐',
+  },
+  {
+    id: 'galaxy',
+    titleKo: '모두가 같은 우주에서 빛납니다',
+    titleEn: 'Everyone shines in the same universe',
+    bodyKo: '레벨이 오르면 Cometail Universe에 들어가 다른 학생들의 행성을 구경하고 자극을 받을 수 있어요.',
+    bodyEn: 'As you level up, you can enter the shared Cometail Universe and see other learners shine.',
+    emoji: '🌌',
+  },
+]
+
+export const universeMilestones = [
+  { level: 5, title: 'Enter the Universe', desc: '우주 공간 구경과 응원 보내기 해금' },
+  { level: 10, title: 'Launch Your Comet', desc: '내 Comet Buddy를 공용 우주에 띄우기' },
+  { level: 20, title: 'Create Your Planet', desc: '별빛을 투자해 나만의 행성 생성' },
+  { level: 30, title: 'Decorate Your Planet', desc: '행성 장식과 작은 구조물 해금' },
+  { level: 50, title: 'Expand Orbit', desc: '위성, 링, 별자리 장식 해금' },
+]
+
 export const themePalettes = [
-  { id: 'purple', name: 'Purple Comet', primary: '#7c3aed', accent: '#f97316', emoji: '💜' },
-  { id: 'mint', name: 'Mint Star', primary: '#0f766e', accent: '#14b8a6', emoji: '🌿' },
-  { id: 'sky', name: 'Sky Blue', primary: '#2563eb', accent: '#38bdf8', emoji: '🌤️' },
-  { id: 'rose', name: 'Rose Pink', primary: '#db2777', accent: '#fb7185', emoji: '🌹' },
-  { id: 'peach', name: 'Peach Glow', primary: '#ea580c', accent: '#fb923c', emoji: '🍑' },
-  { id: 'lemon', name: 'Lemon Light', primary: '#ca8a04', accent: '#facc15', emoji: '🍋' },
-  { id: 'forest', name: 'Forest Green', primary: '#15803d', accent: '#22c55e', emoji: '🌲' },
-  { id: 'navy', name: 'Midnight Navy', primary: '#1e3a8a', accent: '#818cf8', emoji: '🌙' },
-  { id: 'cream', name: 'Cream Beige', primary: '#92400e', accent: '#f59e0b', emoji: '🧸' },
+  { id: 'purple', name: 'Comet Purple', primary: '#7c3aed', accent: '#f97316', bg1: '#ede9fe', bg2: '#fed7aa', emoji: '💜', vibe: '보라색 우주와 주황 별빛' },
+  { id: 'mint', name: 'Mint Classroom', primary: '#0f766e', accent: '#14b8a6', bg1: '#ccfbf1', bg2: '#ecfeff', emoji: '🌿', vibe: '깔끔한 민트 공부방' },
+  { id: 'sky', name: 'Sky Planet', primary: '#2563eb', accent: '#38bdf8', bg1: '#dbeafe', bg2: '#e0f2fe', emoji: '🌤️', vibe: '밝은 하늘색 행성' },
+  { id: 'rose', name: 'Rose Galaxy', primary: '#db2777', accent: '#fb7185', bg1: '#fce7f3', bg2: '#ffe4e6', emoji: '🌹', vibe: '핑크빛 은하' },
+  { id: 'peach', name: 'Peach Diary', primary: '#ea580c', accent: '#fb923c', bg1: '#ffedd5', bg2: '#fef3c7', emoji: '🍑', vibe: '따뜻한 일기장' },
+  { id: 'forest', name: 'Forest Orbit', primary: '#15803d', accent: '#22c55e', bg1: '#dcfce7', bg2: '#f0fdf4', emoji: '🌲', vibe: '초록 행성과 자연' },
+  { id: 'navy', name: 'Midnight Study', primary: '#1e3a8a', accent: '#818cf8', bg1: '#172554', bg2: '#312e81', emoji: '🌙', vibe: '밤 공부와 깊은 우주' },
+  { id: 'cream', name: 'London Beige', primary: '#92400e', accent: '#f59e0b', bg1: '#fef3c7', bg2: '#fffbeb', emoji: '☕', vibe: '차분한 베이지 감성' },
 ]
 
 export const diaryPrompts = [
@@ -23,9 +65,7 @@ export const diaryPrompts = [
   'What did you learn from class, work, or your daily life today?',
 ]
 
-export const goalTypes = [
-  'English Diary', 'TOEFL', 'Duolingo', 'IELTS', 'PTE', 'Conversation', 'School Writing', 'Childcare English', 'Business English'
-]
+export const goalTypes = ['English Diary', 'TOEFL', 'Duolingo', 'IELTS', 'PTE', 'Conversation', 'School Writing', 'Childcare English', 'Business English']
 
 export const typingSentences = [
   'Small steps every day can build strong English skills.',
@@ -39,13 +79,13 @@ export const shopItems = [
   { id: 'streak_shield', name: 'Streak Shield', emoji: '🛡️', price: 80, type: 'Boost', rarity: 'Rare', desc: '하루 놓쳐도 스트릭을 지켜줘요.' },
   { id: 'extra_invite', name: 'Extra Invite', emoji: '🎟️', price: 200, type: 'Community', rarity: 'Epic', desc: '친구를 초대할 수 있는 추가 초대권.' },
   { id: 'basic_box', name: 'Comet Box', emoji: '🎁', price: 100, type: 'Gift Box', rarity: 'Surprise', desc: '랜덤 꾸미기 아이템 하나를 열 수 있어요.' },
-  { id: 'golden_cap', name: 'Golden Cap', emoji: '🧢', price: 120, type: 'Hat', rarity: 'Common', desc: 'Comet 캐릭터에게 씌우는 반짝 모자.' },
-  { id: 'wizard_hat', name: 'Wizard Hat', emoji: '🧙', price: 170, type: 'Hat', rarity: 'Rare', desc: '영어 마법사가 된 느낌의 보라색 모자.' },
-  { id: 'comet_crown', name: 'Comet Crown', emoji: '👑', price: 320, type: 'Hat', rarity: 'Legendary', desc: '꾸준함의 왕관. 랭킹 상위권 느낌.' },
+  { id: 'golden_cap', name: 'Golden Cap', emoji: '🧢', price: 120, type: 'Hat', rarity: 'Common', desc: '반짝이는 기본 모자.' },
+  { id: 'wizard_hat', name: 'Wizard Hat', emoji: '🧙', price: 170, type: 'Hat', rarity: 'Rare', desc: '영어 마법사 느낌의 보라색 모자.' },
+  { id: 'comet_crown', name: 'Comet Crown', emoji: '👑', price: 320, type: 'Hat', rarity: 'Legendary', desc: '꾸준함의 왕관.' },
   { id: 'round_glasses', name: 'Round Glasses', emoji: '👓', price: 90, type: 'Face', rarity: 'Common', desc: '똑똑한 작가 느낌의 둥근 안경.' },
   { id: 'star_sunglasses', name: 'Star Sunglasses', emoji: '😎', price: 160, type: 'Face', rarity: 'Rare', desc: '무대 위 영어 스타 같은 선글라스.' },
   { id: 'star_hoodie', name: 'Star Hoodie', emoji: '🧥', price: 160, type: 'Outfit', rarity: 'Rare', desc: '꾸준한 학생을 위한 별빛 후디.' },
-  { id: 'galaxy_cape', name: 'Galaxy Cape', emoji: '🦸', price: 260, type: 'Outfit', rarity: 'Epic', desc: '캐릭터 뒤에 은하수 망토를 달아줘요.' },
+  { id: 'galaxy_cape', name: 'Galaxy Cape', emoji: '🦸', price: 260, type: 'Outfit', rarity: 'Epic', desc: '은하수 망토.' },
   { id: 'fire_tail', name: 'Fire Tail', emoji: '🔥', price: 220, type: 'Tail', rarity: 'Epic', desc: '스트릭이 뜨거워 보이는 불꽃 꼬리.' },
   { id: 'ice_tail', name: 'Ice Tail', emoji: '❄️', price: 220, type: 'Tail', rarity: 'Epic', desc: '차분한 집중력을 보여주는 아이스 꼬리.' },
   { id: 'rocket', name: 'Tiny Rocket', emoji: '🚀', price: 140, type: 'Hand', rarity: 'Common', desc: '빠르게 성장하는 학생을 위한 작은 로켓.' },
@@ -58,9 +98,9 @@ export const shopItems = [
 ]
 
 export const dailyMissions = [
-  { id: 'daily_diary', title: '영어 일기 3문장 쓰기', reward: 10, type: 'Diary' },
-  { id: 'daily_typing', title: '타자 연습 1회 완료하기', reward: 5, type: 'Typing' },
-  { id: 'daily_feedback', title: '어제 피드백 한 문장 복습하기', reward: 5, type: 'Review' },
+  { id: 'daily_diary', title: '영어 일기 3문장 쓰기', titleEn: 'Write a 3 sentence diary', reward: 10, type: 'Diary' },
+  { id: 'daily_typing', title: '타자 연습 1회 완료하기', titleEn: 'Complete one typing practice', reward: 5, type: 'Typing' },
+  { id: 'daily_feedback', title: '어제 피드백 한 문장 복습하기', titleEn: 'Review one feedback sentence', reward: 5, type: 'Review' },
 ]
 
 export const weeklyQuests = [
@@ -73,15 +113,22 @@ export const sampleUser = {
   uid: 'demo-student',
   email: 'student@cometail.app',
   nickname: 'Comet Student',
+  cometName: 'Lumi',
   goal: 'Write English more naturally',
   goalType: 'English Diary',
   points: 545,
+  totalEarned: 545,
+  universeInvestment: 120,
+  planetInvestment: 0,
   streak: 6,
   longestStreak: 14,
   level: 6,
   isAdmin: false,
+  hasOnboarded: true,
+  appLanguage: 'ko',
+  diaryVisibilityDefault: 'private',
   themeColor: 'purple',
-  displayMode: 'cute',
+  displayMode: 'default',
   equipped: ['golden_cap', 'star_hoodie', 'round_glasses', 'english_book'],
   owned: ['golden_cap', 'star_hoodie', 'round_glasses', 'english_book', 'streak_shield'],
   completedMissions: ['daily_feedback'],
@@ -92,32 +139,9 @@ export const sampleUser = {
 }
 
 export const sampleDiaries = [
-  {
-    id: 'd1', userId: 'demo-student', nickname: 'Comet Student', title: 'A small win at work',
-    content: 'Today I explained my opinion in English during a meeting. It was not perfect, but I felt proud because I did not give up.',
-    feedback: 'Great job. Try saying “I was proud of myself because I did not give up.” This sounds more natural.',
-    corrected: 'Today, I shared my opinion in English during a meeting. It was not perfect, but I was proud of myself because I did not give up.',
-    natural: 'I managed to share my opinion in English at a meeting today. It was not perfect, but I felt proud of myself for trying.',
-    expression: 'I was proud of myself for trying.',
-    teacherComment: '좋은 방향이에요. felt proud 다음에는 of myself가 자주 와요.',
-    createdAt: dayjs().subtract(0, 'day').hour(21).toISOString(), points: 10,
-  },
-  {
-    id: 'd2', userId: 'demo-student', nickname: 'Comet Student', title: 'My weekend plan',
-    content: 'I am going to read a short book and practice typing for ten minutes. I want to keep my streak this week.',
-    feedback: '', corrected: '', natural: '', expression: '', teacherComment: '',
-    createdAt: dayjs().subtract(1, 'day').hour(20).toISOString(), points: 10,
-  },
-  {
-    id: 'd3', userId: 'demo-student', nickname: 'Comet Student', title: 'A new expression',
-    content: 'I learned the expression “That makes sense.” I can use it when I understand someone’s explanation.',
-    feedback: 'Excellent. You can also say “I see what you mean.”',
-    corrected: 'I learned the expression “That makes sense.” I can use it when I understand someone’s explanation.',
-    natural: 'Today I learned “That makes sense.” It is useful when I want to show that I understand someone’s explanation.',
-    expression: 'That makes sense.',
-    teacherComment: '이 표현은 회화에서 정말 자주 써요.',
-    createdAt: dayjs().subtract(3, 'day').hour(22).toISOString(), points: 10,
-  },
+  { id: 'd1', userId: 'demo-student', nickname: 'Comet Student', title: 'A small win at work', content: 'Today I explained my opinion in English during a meeting. It was not perfect, but I felt proud because I did not give up.', visibility: 'teacher', feedback: 'Great job. Try saying “I was proud of myself because I did not give up.” This sounds more natural.', corrected: 'Today, I shared my opinion in English during a meeting. It was not perfect, but I was proud of myself because I did not give up.', natural: 'I managed to share my opinion in English at a meeting today. It was not perfect, but I felt proud of myself for trying.', expression: 'I was proud of myself for trying.', teacherComment: '좋은 방향이에요. felt proud 다음에는 of myself가 자주 와요.', createdAt: dayjs().subtract(0, 'day').hour(21).toISOString(), points: 10 },
+  { id: 'd2', userId: 'demo-student', nickname: 'Comet Student', title: 'My weekend plan', content: 'I am going to read a short book and practice typing for ten minutes. I want to keep my streak this week.', visibility: 'private', feedback: '', corrected: '', natural: '', expression: '', teacherComment: '', createdAt: dayjs().subtract(1, 'day').hour(20).toISOString(), points: 10 },
+  { id: 'd3', userId: 'demo-student', nickname: 'Comet Student', title: 'A new expression', content: 'I learned the expression “That makes sense.” I can use it when I understand someone’s explanation.', visibility: 'community', feedback: 'Excellent. You can also say “I see what you mean.”', corrected: 'I learned the expression “That makes sense.” I can use it when I understand someone’s explanation.', natural: 'Today I learned “That makes sense.” It is useful when I want to show that I understand someone’s explanation.', expression: 'That makes sense.', teacherComment: '이 표현은 회화에서 정말 자주 써요.', createdAt: dayjs().subtract(3, 'day').hour(22).toISOString(), points: 10 },
 ]
 
 export const sampleHomework = [
@@ -127,8 +151,8 @@ export const sampleHomework = [
 ]
 
 export const sampleStudents = [
-  { id: 's1', name: 'Comet Student', streak: 6, points: 545, diaryCount: 8, lastActive: 'Today', risk: 'Safe' },
-  { id: 's2', name: 'IELTS Learner', streak: 4, points: 410, diaryCount: 6, lastActive: 'Yesterday', risk: 'Needs reminder' },
-  { id: 's3', name: 'TOEFL Star', streak: 10, points: 690, diaryCount: 12, lastActive: 'Today', risk: 'Great' },
-  { id: 's4', name: 'Young Writer', streak: 2, points: 180, diaryCount: 3, lastActive: '3 days ago', risk: 'At risk' },
+  { id: 's1', name: 'Comet Student', cometName: 'Lumi', streak: 6, points: 545, level: 6, diaryCount: 8, lastActive: 'Today', risk: 'Safe', planet: null, themeColor: 'purple' },
+  { id: 's2', name: 'IELTS Learner', cometName: 'Nova', streak: 11, points: 1450, level: 15, diaryCount: 22, lastActive: 'Today', risk: 'Great', planet: 'Tiny Moon', themeColor: 'sky' },
+  { id: 's3', name: 'TOEFL Star', cometName: 'Aster', streak: 24, points: 2350, level: 24, diaryCount: 40, lastActive: 'Today', risk: 'Great', planet: 'Blue Planet', themeColor: 'mint' },
+  { id: 's4', name: 'Young Writer', cometName: 'Sol', streak: 2, points: 3180, level: 32, diaryCount: 51, lastActive: 'Yesterday', risk: 'Needs reminder', planet: 'Rose Planet', themeColor: 'rose' },
 ]

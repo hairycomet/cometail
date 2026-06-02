@@ -1,27 +1,35 @@
-# Cometail 2.0
+# Cometail Universe Update
 
-A polished React, Vite and Firebase ready PWA for a private English learning community.
+Cometail is a private English learning community app for Comet English students.
 
-## What is included
+This version focuses on the Cometail Universe concept:
 
-- Login and invite code flow
-- Onboarding
-- Home dashboard with avatar, points, streak and leaderboard
-- English diary writing with prompt, live writing stats and teacher feedback feed
-- Typing practice with WPM and accuracy
-- Homework submission with points
-- Point shop and avatar equipment
-- Profile with invite code
-- Teacher dashboard for students, homework and diary feedback
-- PWA manifest and Vercel SPA rewrite
+- forced login flow
+- signup story onboarding
+- Korean or English language setting for low level students
+- English only transition after Level 20
+- Starlight point economy
+- Comet Buddy with body, arms, legs, and level based comet tails
+- Wardrobe page for owned items, equip, and unequip
+- Shop page separated from Wardrobe
+- diary visibility setting
+- shared Universe tab
+- level locked Universe access
+- planet creation and planet investment structure
+- stronger theme palettes
+- teacher only admin route
 
-## Install
+Run locally:
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Firebase
+Then push:
 
-Copy `.env.example` to `.env.local` and add your Firebase config. The current UI runs with demo Zustand data first, so you can preview the whole app before connecting Firestore.
+```bash
+git add .
+git commit -m "Add Cometail Universe update"
+git push
+```

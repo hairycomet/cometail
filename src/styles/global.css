@@ -225,3 +225,98 @@ input:focus, textarea:focus, select:focus { border-color: rgba(124,58,237,.5); b
 @media (max-width: 900px) {
   .settings-grid, .correction-grid { grid-template-columns: 1fr; }
 }
+
+/* Cometail Universe Update */
+.app.tone-purple { --primary: #7c3aed; --primary-dark: #5b21b6; --accent: #f97316; --bg1: #ede9fe; --bg2: #fed7aa; }
+.app.tone-mint { --primary: #0f766e; --primary-dark: #115e59; --accent: #14b8a6; --bg1: #ccfbf1; --bg2: #ecfeff; }
+.app.tone-sky { --primary: #2563eb; --primary-dark: #1d4ed8; --accent: #38bdf8; --bg1: #dbeafe; --bg2: #e0f2fe; }
+.app.tone-rose { --primary: #db2777; --primary-dark: #be185d; --accent: #fb7185; --bg1: #fce7f3; --bg2: #ffe4e6; }
+.app.tone-peach { --primary: #ea580c; --primary-dark: #c2410c; --accent: #fb923c; --bg1: #ffedd5; --bg2: #fef3c7; }
+.app.tone-forest { --primary: #15803d; --primary-dark: #166534; --accent: #22c55e; --bg1: #dcfce7; --bg2: #f0fdf4; }
+.app.tone-navy { --primary: #1e3a8a; --primary-dark: #172554; --accent: #818cf8; --bg1: #172554; --bg2: #312e81; }
+.app.tone-cream { --primary: #92400e; --primary-dark: #78350f; --accent: #f59e0b; --bg1: #fef3c7; --bg2: #fffbeb; }
+.app { background: radial-gradient(circle at top left, var(--bg1, #ede9fe), transparent 38%), radial-gradient(circle at top right, var(--bg2, #fed7aa), transparent 36%), var(--bg); }
+.app.mode-calm .hero-card, .app.mode-calm .panel, .app.mode-calm .profile-card { border-radius: 26px; }
+.app.mode-sparkle .avatar-glow { opacity: 1; filter: blur(18px); }
+.bottom-nav.seven { grid-template-columns: repeat(7, 1fr); width: min(820px, calc(100% - 24px)); }
+.universe-hero-card { background: radial-gradient(circle at 82% 16%, rgba(255,255,255,.38), transparent 24%), radial-gradient(circle at 92% 70%, rgba(255,255,255,.18), transparent 22%), linear-gradient(135deg, var(--primary-dark), var(--primary) 48%, var(--accent)); }
+.onboarding-cinematic { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top left, #312e81, transparent 35%), radial-gradient(circle at bottom right, #f97316, transparent 30%), #09091a; color: white; }
+.story-card { width: min(1080px, 100%); min-height: 720px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; padding: clamp(24px, 4vw, 48px); border-radius: 46px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(20px); box-shadow: 0 24px 80px rgba(0,0,0,.3); position: relative; overflow: hidden; }
+.story-animation { min-height: 480px; display: grid; place-items: center; position: relative; }
+.story-planet { position: absolute; width: 260px; height: 260px; border-radius: 999px; background: radial-gradient(circle at 30% 25%, #fff, var(--accent)); opacity: .28; filter: blur(1px); }
+.story-comet { position: relative; z-index: 2; width: 360px; max-width: 100%; }
+.story-emoji { position: absolute; right: 12%; top: 12%; font-size: 76px; filter: drop-shadow(0 12px 24px rgba(255,255,255,.18)); }
+.story-copy h1 { font-size: clamp(40px, 5vw, 72px); letter-spacing: -.07em; line-height: 1; margin: 0 0 10px; }
+.story-copy h2 { font-size: 28px; margin: 0 0 18px; color: #fde68a; }
+.story-copy p { color: rgba(255,255,255,.78); font-size: 18px; line-height: 1.8; }
+.story-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 12px; }
+.universe-setup { color: var(--text); width: min(760px, 100%); }
+.mini-palette-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+.mini-palette-row button { padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); font-weight: 900; color: var(--text); }
+.mini-palette-row button.active { background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(249,115,22,.12)); color: var(--primary); }
+.mini-stars i { position: absolute; width: 6px; height: 6px; border-radius: 999px; background: white; opacity: .7; animation: twinkle 2.8s infinite; }
+.mini-stars i:nth-child(1) { left: 18%; top: 22%; }
+.mini-stars i:nth-child(2) { left: 67%; top: 34%; animation-delay: .5s; }
+.mini-stars i:nth-child(3) { left: 42%; bottom: 18%; animation-delay: 1s; }
+.mini-stars i:nth-child(4) { right: 14%; bottom: 26%; animation-delay: 1.5s; }
+@keyframes twinkle { 50% { transform: scale(1.8); opacity: 1; } }
+.unlock-list { display: grid; gap: 10px; }
+.unlock-list p, .milestone-grid div { margin: 0; padding: 14px; border-radius: 18px; border: 1px solid var(--line); display: grid; gap: 4px; background: rgba(124,58,237,.06); }
+.unlock-list p.unlocked, .milestone-grid div.unlocked { background: rgba(34,197,94,.1); border-color: rgba(34,197,94,.22); }
+.unlock-list p.locked, .milestone-grid div.locked { opacity: .72; }
+.unlock-list span { color: var(--muted); font-weight: 800; }
+.wardrobe-layout { display: grid; grid-template-columns: 380px 1fr; gap: 18px; align-items: start; }
+.wardrobe-preview { position: sticky; top: 96px; }
+.comet-avatar.preview { min-height: 360px; }
+.equipped-list { display: grid; gap: 8px; margin-top: 12px; }
+.equipped-list div { display: flex; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 14px; background: rgba(124,58,237,.07); }
+.equipped-list span { color: var(--muted); font-weight: 800; }
+.owned-item-grid { display: grid; gap: 12px; }
+.owned-item-card { display: grid; grid-template-columns: 84px 1fr auto; gap: 14px; align-items: center; padding: 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(255,255,255,.34); }
+.owned-item-card.equipped { border-color: color-mix(in srgb, var(--primary) 50%, var(--line)); background: rgba(124,58,237,.08); }
+.owned-item-card h3 { margin: 0 0 4px; }
+.owned-item-card p { margin: 0 0 6px; color: var(--muted); line-height: 1.5; }
+.owned-item-card span { color: var(--primary); font-weight: 900; }
+.empty-state { min-height: 180px; display: grid; place-items: center; text-align: center; gap: 8px; padding: 24px; border-radius: 22px; border: 1px dashed var(--line); color: var(--muted); }
+.universe-stage { min-height: 540px; border-radius: 42px; position: relative; overflow: hidden; padding: 28px; background: radial-gradient(circle at 20% 20%, rgba(129,140,248,.48), transparent 24%), radial-gradient(circle at 78% 28%, rgba(249,115,22,.34), transparent 20%), linear-gradient(135deg, #09091a, #111827 54%, #312e81); box-shadow: var(--shadow); color: white; }
+.galaxy-cloud { position: absolute; border-radius: 999px; filter: blur(28px); opacity: .3; }
+.galaxy-cloud.one { width: 260px; height: 260px; background: #7c3aed; left: 5%; bottom: 8%; }
+.galaxy-cloud.two { width: 220px; height: 220px; background: #f97316; right: 8%; top: 12%; }
+.universe-label { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,.12); font-weight: 900; }
+.planet-map { position: relative; z-index: 2; min-height: 430px; display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)); gap: 18px; align-items: end; padding-top: 24px; }
+.planet-map.blurred { filter: blur(3px); opacity: .5; pointer-events: none; }
+.locked-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-content: center; text-align: center; gap: 8px; background: rgba(3,7,18,.44); backdrop-filter: blur(3px); }
+.planet-card { min-height: 280px; display: grid; place-items: center; text-align: center; gap: 6px; padding: 16px; border-radius: 28px; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.14); }
+.planet-card.mine { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.34); }
+.planet-orbit { min-height: 150px; display: grid; place-items: center; position: relative; }
+.planet-sphere { border-radius: 999px; display: grid; place-items: center; font-size: 36px; background: radial-gradient(circle at 30% 25%, #fff, var(--primary), var(--accent)); box-shadow: 0 20px 50px rgba(0,0,0,.28); }
+.planet-orbit .comet-avatar.small { position: absolute; right: -20px; top: 16px; }
+.planet-card span, .planet-card small { color: rgba(255,255,255,.72); font-weight: 800; }
+.universe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.investment-stat { margin-top: 14px; padding: 18px; border-radius: 18px; background: rgba(124,58,237,.08); display: grid; gap: 4px; }
+.investment-stat strong { font-size: 32px; }
+.milestone-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.milestone-grid h3 { margin: 0; }
+.milestone-grid p { margin: 0; color: var(--muted); line-height: 1.5; }
+.language-box { display: grid; gap: 10px; margin-bottom: 20px; }
+.language-box button { text-align: left; display: grid; gap: 4px; padding: 14px; border-radius: 18px; color: var(--text); background: var(--surface); border: 1px solid var(--line); font-weight: 900; }
+.language-box button span { color: var(--muted); font-size: 13px; }
+.language-box button.active { border-color: color-mix(in srgb, var(--primary) 44%, var(--line)); background: rgba(124,58,237,.1); color: var(--primary); }
+.locked-note { display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 16px; background: rgba(245,158,11,.12); color: #92400e; font-weight: 900; }
+.mode-title { margin-top: 22px; }
+.visibility-select { display: grid; gap: 8px; color: var(--muted); font-weight: 800; }
+.strong-palette .palette-card { min-height: 128px; }
+.strong-palette .palette-card::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at top left, var(--swatch-bg1), transparent 52%), radial-gradient(circle at bottom right, var(--swatch-bg2), transparent 46%); opacity: .42; z-index: -1; }
+.strong-palette .palette-card small { color: var(--muted); font-weight: 800; }
+@media (max-width: 1050px) {
+  .wardrobe-layout, .universe-grid, .story-card { grid-template-columns: 1fr; }
+  .wardrobe-preview { position: static; }
+  .planet-map, .milestone-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .bottom-nav.seven { grid-template-columns: repeat(7, 1fr); }
+  .bottom-nav.seven span { display: none; }
+  .planet-map, .milestone-grid, .owned-item-card { grid-template-columns: 1fr; }
+  .story-card { min-height: auto; }
+  .story-animation { min-height: 300px; }
+}
