@@ -10,6 +10,8 @@ import HomeworkPage from './pages/HomeworkPage'
 import ShopPage from './pages/ShopPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
+import SettingsPage from './pages/SettingsPage'
+import NotebookPage from './pages/NotebookPage'
 import { useAppStore } from './store/useAppStore'
 
 function ProtectedRoute({ children }) {
@@ -30,6 +32,8 @@ export default function App() {
         <Route path="homework" element={<HomeworkPage />} />
         <Route path="shop" element={<ShopPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="notebook" element={<NotebookPage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
