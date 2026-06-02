@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import LoginPage from './pages/LoginPage'
@@ -17,21 +18,36 @@ import NotebookPage from './pages/NotebookPage'
 import ReportsPage from './pages/ReportsPage'
 import { useAppStore } from './store/useAppStore'
 
+function LoadingGate() {
+  return <main className="loading-gate"><div className="spinner-orbit" /><p>Opening Cometail Universe...</p></main>
+}
+
 function ProtectedRoute({ children }) {
-  const { isAuthed, user } = useAppStore()
+  const { isAuthed, user, isAuthReady } = useAppStore()
+  if (!isAuthReady) return <LoadingGate />
   if (!isAuthed) return <Navigate to="/login" replace />
   if (!user.hasOnboarded) return <Navigate to="/onboarding" replace />
   return children
 }
 
 function AdminRoute({ children }) {
-  const { isAuthed, user } = useAppStore()
+  const { isAuthed, user, isAuthReady } = useAppStore()
+  if (!isAuthReady) return <LoadingGate />
   if (!isAuthed) return <Navigate to="/login" replace />
   if (!user.isAdmin) return <Navigate to="/" replace />
   return children
 }
 
 export default function App() {
+  const initializeAuth = useAppStore(state => state.initializeAuth)
+
+  useEffect(() => {
+    const unsubscribe = initializeAuth?.()
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe()
+    }
+  }, [initializeAuth])
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

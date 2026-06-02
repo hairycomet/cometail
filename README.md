@@ -1,35 +1,34 @@
-# Cometail Universe Update
+# Cometail v8 Firebase Foundation
 
-Cometail is a private English learning community app for Comet English students.
+Cometail is an invite-only private English universe for students.
 
-This version focuses on the Cometail Universe concept:
+This version focuses on Priority 1:
 
-- forced login flow
-- signup story onboarding
-- Korean or English language setting for low level students
-- English only transition after Level 20
-- Starlight point economy
-- Comet Buddy with body, arms, legs, and level based comet tails
-- Wardrobe page for owned items, equip, and unequip
-- Shop page separated from Wardrobe
-- diary visibility setting
-- shared Universe tab
-- level locked Universe access
-- planet creation and planet investment structure
-- stronger theme palettes
-- teacher only admin route
+- Firebase Auth service layer
+- Firestore user profile structure
+- invite code validation structure
+- student profile creation with 1 invite ticket
+- role based teacher/student structure
+- admin menu remains hidden from students
+- `/admin` is blocked for non-teachers
+- Firestore rules draft included
+- diary saving service prepared
 
-Run locally:
+## Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then push:
+## Firebase setup
+
+See `docs/firebase-setup.md`.
+
+## Deploy
 
 ```bash
 git add .
-git commit -m "Add Cometail Universe update"
+git commit -m "Add Cometail v8 Firebase foundation"
 git push
 ```

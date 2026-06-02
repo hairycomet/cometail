@@ -14,11 +14,18 @@ export default function DiaryNewPage() {
   const score = useMemo(() => scoreWriting(content), [content])
 
   const finalVisibility = wantsFeedback ? 'teacher' : visibility
-  const submit = event => {
+  const [saving, setSaving] = useState(false)
+
+  const submit = async event => {
     event.preventDefault()
     if (content.trim().length < 10) return
-    addDiary({ title, content, visibility: finalVisibility })
-    navigate('/diary')
+    setSaving(true)
+    try {
+      await addDiary({ title, content, visibility: finalVisibility, feedbackRequested: wantsFeedback })
+      navigate('/diary')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -36,7 +43,7 @@ export default function DiaryNewPage() {
             <label className="visibility-select">공개 범위<select value={visibility} onChange={e => setVisibility(e.target.value)} disabled={wantsFeedback}><option value="private">나만 보기</option><option value="class">클래스 피드 공개</option><option value="community">Cometail Universe 공개</option></select></label>
             <p>{wantsFeedback ? '피드백 요청 글은 선생님에게 제출됩니다.' : '기본값은 나만 보기입니다. 원할 때만 공개하세요.'}</p>
           </div>
-          <button className="primary-button" disabled={content.trim().length < 10}><IconSparkles size={18} /> 저장하고 10 Starlight 받기</button>
+          <button className="primary-button" disabled={content.trim().length < 10 || saving}><IconSparkles size={18} /> {saving ? '저장 중...' : '저장하고 10 Starlight 받기'}</button>
         </form>
       </section>
       <aside className="writing-sidebar">

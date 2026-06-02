@@ -23,10 +23,17 @@ export default function OnboardingPage() {
   if (user.hasOnboarded) return <Navigate to="/" replace />
 
   const next = () => setStep(prev => Math.min(prev + 1, storySlides.length))
-  const save = event => {
+  const [saving, setSaving] = useState(false)
+
+  const save = async event => {
     event.preventDefault()
-    completeOnboarding({ nickname, cometName, goal, goalType, appLanguage, themeColor })
-    navigate('/')
+    setSaving(true)
+    try {
+      await completeOnboarding({ nickname, cometName, goal, goalType, appLanguage, themeColor })
+      navigate('/')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -68,7 +75,7 @@ export default function OnboardingPage() {
           <div className="mini-palette-row">
             {themePalettes.slice(0, 6).map(theme => <button type="button" key={theme.id} className={themeColor === theme.id ? 'active' : ''} onClick={() => setThemeColor(theme.id)}>{theme.emoji} {theme.name}</button>)}
           </div>
-          <button className="primary-button"><IconSparkles size={18} /> 내 커멧 시작하기</button>
+          <button className="primary-button" disabled={saving}><IconSparkles size={18} /> {saving ? '저장 중...' : '내 커멧 시작하기'}</button>
         </form>
       )}
     </div>

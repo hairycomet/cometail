@@ -1,7 +1,7 @@
 {
-  "name": "cometail-v7-student-beta",
+  "name": "cometail-v8-firebase-foundation",
   "private": true,
-  "version": "7.0.0",
+  "version": "8.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

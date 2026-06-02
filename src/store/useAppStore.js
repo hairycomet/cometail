@@ -13,6 +13,20 @@ import {
   shopItems,
   weeklyQuests,
 } from '../data/content'
+import {
+  canUseFirebase,
+  createDiaryRemote,
+  createInviteCodeRemote,
+  createStudentInviteCodeRemote,
+  listenToAuthState,
+  listInviteCodesRemote,
+  listMyDiariesRemote,
+  normalizeInviteCode,
+  saveUserProfile,
+  signInCometail,
+  signOutCometail,
+  signUpWithInvite,
+} from '../services/firebaseServices'
 
 const calcLevel = points => Math.max(1, Math.floor(points / 100) + 1)
 const wearableTypes = ['Hat', 'Face', 'Outfit', 'Tail', 'Hand', 'Background', 'Badge', 'Pet', 'Aura', 'Frame']
@@ -26,7 +40,6 @@ const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || 'hairycomet@gmail.com'
   .map(email => email.trim().toLowerCase())
   .filter(Boolean)
 const isTeacherEmail = email => adminEmails.includes((email || '').trim().toLowerCase())
-const normalizeCode = code => (code || '').trim().replace(/\s+/g, '').toUpperCase()
 const createStudentCode = nickname => {
   const seed = (nickname || 'COMET').replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase() || 'COMET'
   return `${seed}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
@@ -46,24 +59,85 @@ export const useAppStore = create(
       notifications: [],
       theme: 'light',
       isAuthed: false,
+      isAuthReady: !canUseFirebase,
+      isFirebaseMode: canUseFirebase,
+      authError: '',
       currentPrompt: diaryPrompts[0],
+      initializeAuth: () => {
+        if (!canUseFirebase) {
+          set({ isAuthReady: true })
+          return () => {}
+        }
+        if (get().authUnsubscribe) return get().authUnsubscribe
+        const unsubscribe = listenToAuthState(async profile => {
+          if (!profile) {
+            set({ isAuthed: false, user: sampleUser, isAuthReady: true })
+            return
+          }
+          let nextDiaries = get().diaries
+          let nextInviteCodes = get().inviteCodes
+          try {
+            nextDiaries = await listMyDiariesRemote(profile.uid)
+            if (profile.isAdmin) nextInviteCodes = await listInviteCodesRemote()
+          } catch (error) {
+            console.warn('Firebase preload failed', error)
+          }
+          set({ isAuthed: true, user: profile, diaries: nextDiaries?.length ? nextDiaries : get().diaries, inviteCodes: nextInviteCodes?.length ? nextInviteCodes : get().inviteCodes, isAuthReady: true })
+        })
+        set({ authUnsubscribe: unsubscribe })
+        return unsubscribe
+      },
       getLanguage: () => effectiveLanguage(get().user),
       validateInviteCode: code => {
-        const normalized = normalizeCode(code)
+        const normalized = normalizeInviteCode(code)
         const record = get().inviteCodes.find(item => item.code === normalized)
         return Boolean(record && record.active && record.used < record.maxUses)
       },
-      login: ({ email }) => set(state => ({
-        isAuthed: true,
-        user: {
-          ...state.user,
-          email,
-          isAdmin: isTeacherEmail(email),
-          hasOnboarded: email === state.user.email ? state.user.hasOnboarded : true,
-        },
-      })),
-      signup: ({ email, inviteCode }) => {
-        const normalized = normalizeCode(inviteCode)
+      login: async ({ email, password }) => {
+        const normalizedEmail = (email || '').trim().toLowerCase()
+        if (canUseFirebase) {
+          try {
+            const profile = await signInCometail({ email: normalizedEmail, password })
+            set({ isAuthed: true, user: profile, authError: '' })
+            toast.success('Cometail에 들어왔어요')
+            return true
+          } catch (error) {
+            console.error(error)
+            set({ authError: error.message })
+            toast.error('로그인 정보를 다시 확인해주세요')
+            return false
+          }
+        }
+        set(state => ({
+          isAuthed: true,
+          user: {
+            ...state.user,
+            email: normalizedEmail,
+            role: isTeacherEmail(normalizedEmail) ? 'teacher' : 'student',
+            isAdmin: isTeacherEmail(normalizedEmail),
+            hasOnboarded: normalizedEmail === state.user.email ? state.user.hasOnboarded : true,
+          },
+        }))
+        return true
+      },
+      signup: async ({ email, password, inviteCode }) => {
+        const normalized = normalizeInviteCode(inviteCode)
+        const normalizedEmail = (email || '').trim().toLowerCase()
+
+        if (canUseFirebase) {
+          try {
+            const profile = await signUpWithInvite({ email: normalizedEmail, password, inviteCode: normalized })
+            set({ isAuthed: true, user: profile, authError: '' })
+            toast.success('초대코드 확인 완료')
+            return true
+          } catch (error) {
+            console.error(error)
+            set({ authError: error.message })
+            toast.error('참여코드 또는 가입 정보를 다시 확인해주세요')
+            return false
+          }
+        }
+
         if (!get().validateInviteCode(normalized)) {
           toast.error('참여코드를 다시 확인해주세요')
           return false
@@ -74,7 +148,7 @@ export const useAppStore = create(
           user: {
             ...sampleUser,
             uid: crypto.randomUUID(),
-            email,
+            email: normalizedEmail,
             nickname: 'New Comet',
             cometName: 'Lumi',
             goal: '',
@@ -97,22 +171,42 @@ export const useAppStore = create(
             usedInviteTickets: 0,
             generatedInviteCodes: [],
             inviteCode: normalized,
+            role: 'student',
             isAdmin: false,
             createdAt: dayjs().toISOString(),
           },
         }))
         return true
       },
-      logout: () => set({ isAuthed: false }),
-      completeOnboarding: data => set(state => ({ user: { ...state.user, ...data, hasOnboarded: true } })),
+      logout: async () => {
+        try { await signOutCometail() } catch (error) { console.warn(error) }
+        set({ isAuthed: false, user: sampleUser })
+      },
+      completeOnboarding: async data => {
+        const nextData = { ...data, hasOnboarded: true }
+        set(state => ({ user: { ...state.user, ...nextData } }))
+        if (canUseFirebase) {
+          try { await saveUserProfile(get().user.uid, nextData) } catch (error) { console.warn(error) }
+        }
+      },
       toggleTheme: () => set(state => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setThemeColor: themeColor => {
         set(state => ({ user: { ...state.user, themeColor } }))
         toast.success('테마를 바꿨어요')
       },
       setDisplayMode: displayMode => set(state => ({ user: { ...state.user, displayMode } })),
-      updateProfile: data => {
+      updateProfile: async data => {
         set(state => ({ user: { ...state.user, ...data } }))
+        if (canUseFirebase) {
+          try {
+            const profile = await saveUserProfile(get().user.uid, data)
+            if (profile) set({ user: profile })
+          } catch (error) {
+            console.warn(error)
+            toast.error('저장 중 문제가 생겼어요')
+            return
+          }
+        }
         toast.success('설정을 저장했어요')
       },
       setLanguage: appLanguage => {
@@ -132,19 +226,24 @@ export const useAppStore = create(
         const totalEarned = (state.user.totalEarned || state.user.points) + points
         return { user: { ...state.user, points: next, totalEarned, level: calcLevel(totalEarned) } }
       }),
-      addDiary: ({ title, content, visibility }) => {
+      addDiary: async ({ title, content, visibility, feedbackRequested = false }) => {
         const entry = {
           id: crypto.randomUUID(), userId: get().user.uid, nickname: get().user.nickname,
           title: title || 'Untitled Diary', content, visibility: visibility || get().user.diaryVisibilityDefault || 'private',
+          feedbackRequested, status: feedbackRequested ? 'waiting' : 'private',
           feedback: '', corrected: '', natural: '', expression: '', teacherComment: '',
           createdAt: dayjs().toISOString(), points: 10,
+        }
+        let savedEntry = entry
+        if (canUseFirebase) {
+          try { savedEntry = await createDiaryRemote({ user: get().user, diary: entry }) || entry } catch (error) { console.warn(error); toast.error('일기 저장 중 문제가 생겼어요') }
         }
         set(state => {
           const newPoints = state.user.points + 10
           const totalEarned = (state.user.totalEarned || state.user.points) + 10
           const completedMissions = [...new Set([...(state.user.completedMissions || []), 'daily_diary'])]
           return {
-            diaries: [entry, ...state.diaries],
+            diaries: [savedEntry, ...state.diaries],
             user: { ...state.user, completedMissions, points: newPoints, totalEarned, level: calcLevel(totalEarned), streak: state.user.streak + 1, longestStreak: Math.max(state.user.longestStreak, state.user.streak + 1) },
           }
         })
@@ -228,20 +327,43 @@ export const useAppStore = create(
         set(state => ({ user: { ...state.user, universeCheers: { ...(state.user.universeCheers || {}), [`${studentId}-${reactionId}`]: true } } }))
         toast.success('응원을 보냈어요')
       },
-      generateInviteCode: () => {
+      generateInviteCode: async () => {
         const user = get().user
         if ((user.inviteTickets || 0) < 1) { toast.error('사용 가능한 초대권이 없어요'); return }
-        const code = createStudentCode(user.nickname)
-        set(state => ({
-          inviteCodes: [{ code, label: `${state.user.nickname} invite`, maxUses: 1, used: 0, active: true }, ...state.inviteCodes],
-          user: { ...state.user, inviteTickets: state.user.inviteTickets - 1, usedInviteTickets: (state.user.usedInviteTickets || 0) + 1, generatedInviteCodes: [code, ...(state.user.generatedInviteCodes || [])] },
-        }))
-        toast.success(`초대코드 ${code} 생성 완료`)
+        try {
+          if (canUseFirebase) {
+            const record = await createStudentInviteCodeRemote({ ownerUid: user.uid, ownerNickname: user.nickname })
+            set(state => ({
+              inviteCodes: [record, ...state.inviteCodes.filter(item => item.code !== record.code)],
+              user: { ...state.user, inviteTickets: state.user.inviteTickets - 1, usedInviteTickets: (state.user.usedInviteTickets || 0) + 1, generatedInviteCodes: [record.code, ...(state.user.generatedInviteCodes || [])] },
+            }))
+            toast.success(`초대코드 ${record.code} 생성 완료`)
+            return
+          }
+          const code = createStudentCode(user.nickname)
+          set(state => ({
+            inviteCodes: [{ code, label: `${state.user.nickname} invite`, maxUses: 1, used: 0, active: true }, ...state.inviteCodes],
+            user: { ...state.user, inviteTickets: state.user.inviteTickets - 1, usedInviteTickets: (state.user.usedInviteTickets || 0) + 1, generatedInviteCodes: [code, ...(state.user.generatedInviteCodes || [])] },
+          }))
+          toast.success(`초대코드 ${code} 생성 완료`)
+        } catch (error) {
+          console.error(error)
+          toast.error('초대코드를 만들 수 없어요')
+        }
       },
-      createAdminInviteCode: ({ code, label, maxUses }) => {
-        const normalized = normalizeCode(code || `COMET-${Math.random().toString(36).slice(2, 7)}`)
-        set(state => ({ inviteCodes: [{ code: normalized, label: label || 'Teacher invite', maxUses: Number(maxUses || 1), used: 0, active: true }, ...state.inviteCodes] }))
-        toast.success('참여코드를 만들었어요')
+      createAdminInviteCode: async ({ code, label, maxUses }) => {
+        const normalized = normalizeInviteCode(code || `COMET-${Math.random().toString(36).slice(2, 7)}`)
+        try {
+          const remoteRecord = canUseFirebase
+            ? await createInviteCodeRemote({ code: normalized, label, maxUses, createdBy: get().user.uid })
+            : null
+          const record = remoteRecord || { code: normalized, label: label || 'Teacher invite', maxUses: Number(maxUses || 1), used: 0, active: true }
+          set(state => ({ inviteCodes: [record, ...state.inviteCodes.filter(item => item.code !== record.code)] }))
+          toast.success('참여코드를 만들었어요')
+        } catch (error) {
+          console.error(error)
+          toast.error('이미 있거나 만들 수 없는 코드예요')
+        }
       },
       saveExpression: expression => {
         if (!expression?.trim()) return
@@ -319,6 +441,6 @@ export const useAppStore = create(
         toast.success(`행성에 ${value} Starlight 투자 완료`)
       },
     }),
-    { name: 'cometail-v7-student-beta-store' },
+    { name: 'cometail-v8-firebase-foundation-store' },
   ),
 )

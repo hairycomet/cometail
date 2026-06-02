@@ -9,7 +9,7 @@ const normalizeCode = value => value.trim().replace(/\s+/g, '').toUpperCase()
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { isAuthed, login, signup, validateInviteCode } = useAppStore()
+  const { isAuthed, login, signup } = useAppStore()
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,7 +17,9 @@ export default function LoginPage() {
 
   if (isAuthed) return <Navigate to="/" replace />
 
-  const handleSubmit = event => {
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async event => {
     event.preventDefault()
     const trimmedEmail = email.trim().toLowerCase()
     const normalizedCode = normalizeCode(code)
@@ -27,23 +29,24 @@ export default function LoginPage() {
       return
     }
 
-    if (mode === 'signup') {
-      if (!normalizedCode) {
-        toast.error('참여코드를 입력해주세요')
+    setLoading(true)
+    try {
+      if (mode === 'signup') {
+        if (!normalizedCode) {
+          toast.error('참여코드를 입력해주세요')
+          return
+        }
+        const ok = await signup({ email: trimmedEmail, password, inviteCode: normalizedCode })
+        if (!ok) return
+        navigate('/onboarding')
         return
       }
-      if (!validateInviteCode(normalizedCode)) {
-        toast.error('참여코드를 다시 확인해주세요')
-        return
-      }
-      const ok = signup({ email: trimmedEmail, inviteCode: normalizedCode })
-      if (!ok) return
-      navigate('/onboarding')
-      return
-    }
 
-    login({ email: trimmedEmail })
-    navigate('/')
+      const ok = await login({ email: trimmedEmail, password })
+      if (ok) navigate('/')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -102,8 +105,8 @@ export default function LoginPage() {
             <label className="v5-field"><span><IconTicket size={18} /> 참여코드</span><input value={code} onChange={e => setCode(e.target.value)} placeholder="선생님에게 받은 코드를 입력하세요" autoComplete="off" /></label>
           )}
 
-          <button className="primary-button v5-auth-submit" type="submit">
-            {mode === 'login' ? 'Cometail 들어가기' : '가입하고 세계관 시작하기'} <IconArrowRight size={19} />
+          <button className="primary-button v5-auth-submit" type="submit" disabled={loading}>
+            {loading ? '확인 중...' : mode === 'login' ? 'Cometail 들어가기' : '가입하고 세계관 시작하기'} <IconArrowRight size={19} />
           </button>
 
           <div className="v5-private-note">
