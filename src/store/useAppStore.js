@@ -2,10 +2,20 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
-import { dailyMissions, diaryPrompts, sampleDiaries, sampleHomework, sampleStudents, sampleUser, shopItems, weeklyQuests } from '../data/content'
+import {
+  dailyMissions,
+  diaryPrompts,
+  inviteCodeRecords,
+  sampleDiaries,
+  sampleHomework,
+  sampleStudents,
+  sampleUser,
+  shopItems,
+  weeklyQuests,
+} from '../data/content'
 
 const calcLevel = points => Math.max(1, Math.floor(points / 100) + 1)
-const wearableTypes = ['Hat', 'Face', 'Outfit', 'Tail', 'Hand', 'Background', 'Badge']
+const wearableTypes = ['Hat', 'Face', 'Outfit', 'Tail', 'Hand', 'Background', 'Badge', 'Pet', 'Aura', 'Frame']
 const randomItem = owned => {
   const pool = shopItems.filter(item => wearableTypes.includes(item.type) && !owned.includes(item.id))
   return pool[Math.floor(Math.random() * Math.max(1, pool.length))]
@@ -16,6 +26,11 @@ const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || 'hairycomet@gmail.com'
   .map(email => email.trim().toLowerCase())
   .filter(Boolean)
 const isTeacherEmail = email => adminEmails.includes((email || '').trim().toLowerCase())
+const normalizeCode = code => (code || '').trim().replace(/\s+/g, '').toUpperCase()
+const createStudentCode = nickname => {
+  const seed = (nickname || 'COMET').replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase() || 'COMET'
+  return `${seed}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+}
 
 export const useAppStore = create(
   persist(
@@ -26,10 +41,16 @@ export const useAppStore = create(
       students: sampleStudents,
       missions: dailyMissions,
       quests: weeklyQuests,
+      inviteCodes: inviteCodeRecords,
       theme: 'light',
       isAuthed: false,
       currentPrompt: diaryPrompts[0],
       getLanguage: () => effectiveLanguage(get().user),
+      validateInviteCode: code => {
+        const normalized = normalizeCode(code)
+        const record = get().inviteCodes.find(item => item.code === normalized)
+        return Boolean(record && record.active && record.used < record.maxUses)
+      },
       login: ({ email }) => set(state => ({
         isAuthed: true,
         user: {
@@ -39,28 +60,45 @@ export const useAppStore = create(
           hasOnboarded: email === state.user.email ? state.user.hasOnboarded : true,
         },
       })),
-      signup: ({ email, inviteCode }) => set(state => ({
-        isAuthed: true,
-        user: {
-          ...state.user,
-          email,
-          points: 0,
-          totalEarned: 0,
-          universeInvestment: 0,
-          planetInvestment: 0,
-          level: 1,
-          streak: 0,
-          longestStreak: 0,
-          hasOnboarded: false,
-          owned: [],
-          equipped: [],
-          completedMissions: [],
-          completedQuests: [],
-          inviteTickets: 1,
-          inviteCode,
-          isAdmin: false,
-        },
-      })),
+      signup: ({ email, inviteCode }) => {
+        const normalized = normalizeCode(inviteCode)
+        if (!get().validateInviteCode(normalized)) {
+          toast.error('참여코드를 다시 확인해주세요')
+          return false
+        }
+        set(state => ({
+          isAuthed: true,
+          inviteCodes: state.inviteCodes.map(record => record.code === normalized ? { ...record, used: record.used + 1 } : record),
+          user: {
+            ...sampleUser,
+            uid: crypto.randomUUID(),
+            email,
+            nickname: 'New Comet',
+            cometName: 'Lumi',
+            goal: '',
+            points: 0,
+            totalEarned: 0,
+            universeInvestment: 0,
+            planetInvestment: 0,
+            level: 1,
+            streak: 0,
+            longestStreak: 0,
+            hasOnboarded: false,
+            owned: [],
+            equipped: [],
+            planetDecor: [],
+            completedMissions: [],
+            completedQuests: [],
+            inviteTickets: 1,
+            usedInviteTickets: 0,
+            generatedInviteCodes: [],
+            inviteCode: normalized,
+            isAdmin: false,
+            createdAt: dayjs().toISOString(),
+          },
+        }))
+        return true
+      },
       logout: () => set({ isAuthed: false }),
       completeOnboarding: data => set(state => ({ user: { ...state.user, ...data, hasOnboarded: true } })),
       toggleTheme: () => set(state => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
@@ -140,6 +178,12 @@ export const useAppStore = create(
         const item = shopItems.find(product => product.id === itemId)
         const { user } = get()
         if (!item) return
+        if (item.id === 'extra_invite') {
+          if (user.points < item.price) { toast.error('별빛이 부족해요'); return }
+          set(state => ({ user: { ...state.user, points: state.user.points - item.price, inviteTickets: (state.user.inviteTickets || 0) + 1 } }))
+          toast.success('초대권 1장이 추가됐어요')
+          return
+        }
         if (user.owned?.includes(itemId) && item.type !== 'Gift Box') { toast('이미 가지고 있어요'); return }
         if (user.points < item.price) { toast.error('별빛이 부족해요'); return }
         if (item.type === 'Gift Box') {
@@ -165,6 +209,36 @@ export const useAppStore = create(
         const sameTypeIds = shopItems.filter(product => product.type === type).map(product => product.id)
         return { user: { ...state.user, equipped: (state.user.equipped || []).filter(id => !sameTypeIds.includes(id)) } }
       }),
+      resetEquipped: () => set(state => ({ user: { ...state.user, equipped: [] } })),
+      decoratePlanet: itemId => {
+        const item = shopItems.find(product => product.id === itemId)
+        const user = get().user
+        if (!item || !['Planet', 'Room'].includes(item.type)) return
+        if (!user.owned?.includes(itemId)) { toast.error('먼저 상점에서 구매해야 해요'); return }
+        if (user.level < 30 && item.type === 'Planet') { toast.error('Level 30부터 행성 장식이 가능해요'); return }
+        set(state => ({ user: { ...state.user, planetDecor: [...new Set([...(state.user.planetDecor || []), itemId])] } }))
+        toast.success('우주 장식을 적용했어요')
+      },
+      removePlanetDecor: itemId => set(state => ({ user: { ...state.user, planetDecor: (state.user.planetDecor || []).filter(id => id !== itemId) } })),
+      cheerStudent: (studentId, reactionId) => {
+        set(state => ({ user: { ...state.user, universeCheers: { ...(state.user.universeCheers || {}), [`${studentId}-${reactionId}`]: true } } }))
+        toast.success('응원을 보냈어요')
+      },
+      generateInviteCode: () => {
+        const user = get().user
+        if ((user.inviteTickets || 0) < 1) { toast.error('사용 가능한 초대권이 없어요'); return }
+        const code = createStudentCode(user.nickname)
+        set(state => ({
+          inviteCodes: [{ code, label: `${state.user.nickname} invite`, maxUses: 1, used: 0, active: true }, ...state.inviteCodes],
+          user: { ...state.user, inviteTickets: state.user.inviteTickets - 1, usedInviteTickets: (state.user.usedInviteTickets || 0) + 1, generatedInviteCodes: [code, ...(state.user.generatedInviteCodes || [])] },
+        }))
+        toast.success(`초대코드 ${code} 생성 완료`)
+      },
+      createAdminInviteCode: ({ code, label, maxUses }) => {
+        const normalized = normalizeCode(code || `COMET-${Math.random().toString(36).slice(2, 7)}`)
+        set(state => ({ inviteCodes: [{ code: normalized, label: label || 'Teacher invite', maxUses: Number(maxUses || 1), used: 0, active: true }, ...state.inviteCodes] }))
+        toast.success('참여코드를 만들었어요')
+      },
       saveExpression: expression => {
         if (!expression?.trim()) return
         set(state => ({ user: { ...state.user, savedExpressions: [...new Set([...(state.user.savedExpressions || []), expression.trim()])] } }))
@@ -204,6 +278,6 @@ export const useAppStore = create(
         toast.success(`행성에 ${value} Starlight 투자 완료`)
       },
     }),
-    { name: 'cometail-v4-universe-store' },
+    { name: 'cometail-v6-full-student-test-store' },
   ),
 )

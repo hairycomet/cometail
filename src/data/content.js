@@ -2,6 +2,19 @@ import dayjs from 'dayjs'
 
 export const invitationCodes = ['COMET2026', 'COMETKIDS', 'IELTS55', 'TOEFL100']
 
+export const inviteCodeRecords = [
+  { code: 'COMET2026', label: 'Default student invite', maxUses: 30, used: 0, active: true },
+  { code: 'IELTS55', label: 'IELTS group invite', maxUses: 12, used: 0, active: true },
+  { code: 'TOEFL100', label: 'TOEFL group invite', maxUses: 12, used: 0, active: true },
+]
+
+export const universeReactions = [
+  { id: 'cheer', labelKo: '응원해요', labelEn: 'Keep going', emoji: '👏' },
+  { id: 'shine', labelKo: '빛나요', labelEn: 'Your comet shines', emoji: '✨' },
+  { id: 'streak', labelKo: '꾸준해요', labelEn: 'Nice streak', emoji: '🔥' },
+  { id: 'cool', labelKo: '행성 멋져요', labelEn: 'Cool planet', emoji: '🪐' },
+]
+
 export const storySlides = [
   {
     id: 'gate',
@@ -105,6 +118,16 @@ export const shopItems = [
   { id: 'london_bg', name: 'London Street', emoji: '🇬🇧', price: 300, type: 'Background', rarity: 'Epic', desc: '영국 거리 분위기의 프로필 배경.' },
   { id: 'library_bg', name: 'Quiet Library', emoji: '📚', price: 240, type: 'Background', rarity: 'Rare', desc: '차분한 독서실 느낌의 배경.' },
   { id: 'best_writer_badge', name: 'Best Writer Badge', emoji: '🏅', price: 400, type: 'Badge', rarity: 'Teacher Special', desc: '선생님이 특별히 주면 더 좋은 뱃지.' },
+  { id: 'moon_cat', name: 'Moon Cat', emoji: '🐈‍⬛', price: 360, type: 'Pet', rarity: 'Epic', desc: '행성 주변을 따라다니는 달빛 고양이.' },
+  { id: 'rocket_puppy', name: 'Rocket Puppy', emoji: '🐶', price: 360, type: 'Pet', rarity: 'Epic', desc: 'Comet Buddy 옆을 지키는 작은 로켓 강아지.' },
+  { id: 'soft_aura', name: 'Soft Aura', emoji: '💫', price: 260, type: 'Aura', rarity: 'Rare', desc: '캐릭터 주변을 부드럽게 빛나게 해요.' },
+  { id: 'galaxy_aura', name: 'Galaxy Aura', emoji: '🌌', price: 520, type: 'Aura', rarity: 'Legendary', desc: '고레벨 커멧에게 어울리는 은하 오라.' },
+  { id: 'study_frame', name: 'Study Frame', emoji: '🖼️', price: 220, type: 'Frame', rarity: 'Rare', desc: '프로필을 차분한 공부 느낌으로 꾸며요.' },
+  { id: 'first_planet_seed', name: 'Planet Seed', emoji: '🌱', price: 300, type: 'Planet', rarity: 'Rare', desc: 'Level 20 이후 행성 성장에 사용할 수 있는 씨앗.' },
+  { id: 'planet_ring_gold', name: 'Golden Planet Ring', emoji: '🪐', price: 650, type: 'Planet', rarity: 'Epic', desc: '내 행성에 금빛 고리를 추가해요.' },
+  { id: 'planet_tree', name: 'Starlight Tree', emoji: '🌳', price: 420, type: 'Planet', rarity: 'Epic', desc: '행성 위에 별빛 나무를 심어요.' },
+  { id: 'moon_chair', name: 'Moon Chair', emoji: '🌙', price: 300, type: 'Room', rarity: 'Rare', desc: '홈 화면에 둘 수 있는 달 의자.' },
+  { id: 'offline_party_badge', name: 'Offline Party Badge', emoji: '🎉', price: 9999, type: 'Badge', rarity: 'Teacher Special', desc: '오프라인 모임 참가자에게만 지급되는 특별 뱃지.' },
 ]
 
 export const dailyMissions = [
@@ -139,13 +162,17 @@ export const sampleUser = {
   diaryVisibilityDefault: 'private',
   themeColor: 'purple',
   displayMode: 'default',
-  equipped: ['golden_cap', 'star_hoodie', 'round_glasses', 'english_book'],
-  owned: ['golden_cap', 'star_hoodie', 'round_glasses', 'english_book', 'streak_shield'],
+  equipped: ['golden_cap', 'star_hoodie', 'round_glasses', 'english_book', 'soft_aura', 'moon_cat'],
+  owned: ['golden_cap', 'star_hoodie', 'round_glasses', 'english_book', 'soft_aura', 'moon_cat', 'streak_shield', 'moon_chair'],
   completedMissions: ['daily_feedback'],
   completedQuests: [],
   savedExpressions: ['I was proud of myself.', 'I see what you mean.'],
   inviteCode: 'COMET2026',
   inviteTickets: 1,
+  usedInviteTickets: 0,
+  generatedInviteCodes: ['FRIEND-STAR'],
+  universeCheers: {},
+  planetDecor: ['moon_chair'],
   createdAt: dayjs().subtract(10, 'day').toISOString(),
 }
 

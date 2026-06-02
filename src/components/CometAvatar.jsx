@@ -15,16 +15,24 @@ export default function CometAvatar({ size = 'large', equipped = [], level = 1, 
   const hasCoffee = equipped.includes('coffee')
   const hasFireTail = equipped.includes('fire_tail')
   const hasIceTail = equipped.includes('ice_tail')
+  const hasSoftAura = equipped.includes('soft_aura')
+  const hasGalaxyAura = equipped.includes('galaxy_aura')
+  const hasMoonCat = equipped.includes('moon_cat')
+  const hasRocketPuppy = equipped.includes('rocket_puppy')
   const tails = Array.from({ length: tailCount }, (_, index) => index)
 
   return (
     <motion.div
-      className={`comet-avatar ${isSmall ? 'small' : ''} ${preview ? 'preview' : ''} ${hasFireTail ? 'fire-tail' : ''} ${hasIceTail ? 'ice-tail' : ''}`}
+      className={`comet-avatar ${isSmall ? 'small' : ''} ${preview ? 'preview' : ''} ${hasFireTail ? 'fire-tail' : ''} ${hasIceTail ? 'ice-tail' : ''} ${hasSoftAura ? 'soft-aura' : ''} ${hasGalaxyAura ? 'galaxy-aura' : ''}`}
       animate={{ y: [0, -8, 0], rotate: [0, 1.5, -1.5, 0] }}
       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       aria-label="Cometail character"
     >
       <div className="avatar-glow" />
+      {hasGalaxyAura && <div className="avatar-aura-ring" />}
+      {hasSoftAura && <div className="avatar-aura-soft" />}
+      {hasMoonCat && <div className="avatar-pet moon-cat">🐈‍⬛</div>}
+      {hasRocketPuppy && <div className="avatar-pet rocket-puppy">🐶</div>}
       <svg viewBox="0 0 300 320" role="img">
         <defs>
           <linearGradient id={`tail-${size}`} x1="16" x2="175" y1="198" y2="100" gradientUnits="userSpaceOnUse">

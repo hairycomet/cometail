@@ -4,13 +4,12 @@ import toast from 'react-hot-toast'
 import { IconArrowRight, IconKey, IconLock, IconMail, IconSparkles, IconTicket, IconUserPlus } from '@tabler/icons-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../store/useAppStore'
-import { invitationCodes } from '../data/content'
 
 const normalizeCode = value => value.trim().replace(/\s+/g, '').toUpperCase()
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { isAuthed, login, signup } = useAppStore()
+  const { isAuthed, login, signup, validateInviteCode } = useAppStore()
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -33,11 +32,12 @@ export default function LoginPage() {
         toast.error('참여코드를 입력해주세요')
         return
       }
-      if (!invitationCodes.includes(normalizedCode)) {
+      if (!validateInviteCode(normalizedCode)) {
         toast.error('참여코드를 다시 확인해주세요')
         return
       }
-      signup({ email: trimmedEmail, inviteCode: normalizedCode })
+      const ok = signup({ email: trimmedEmail, inviteCode: normalizedCode })
+      if (!ok) return
       navigate('/onboarding')
       return
     }
