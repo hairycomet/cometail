@@ -32,3 +32,9 @@ git add .
 git commit -m "Add Cometail v8 Firebase foundation"
 git push
 ```
+
+
+## v8.3 fixes
+- Fixed React hook order errors on Login and Onboarding pages.
+- Kept invite-code usage on usedCount.
+- If Firebase says missing permissions, publish firestore.rules in Firebase Console.

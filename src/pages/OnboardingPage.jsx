@@ -16,6 +16,7 @@ export default function OnboardingPage() {
   const [goalType, setGoalType] = useState(user.goalType || 'English Diary')
   const [appLanguage, setAppLanguage] = useState(user.appLanguage || 'ko')
   const [themeColor, setThemeColor] = useState(user.themeColor || 'purple')
+  const [saving, setSaving] = useState(false)
   const slide = storySlides[step]
   const isStory = step < storySlides.length
 
@@ -23,7 +24,6 @@ export default function OnboardingPage() {
   if (user.hasOnboarded) return <Navigate to="/" replace />
 
   const next = () => setStep(prev => Math.min(prev + 1, storySlides.length))
-  const [saving, setSaving] = useState(false)
 
   const save = async event => {
     event.preventDefault()

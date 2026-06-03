@@ -11,7 +11,6 @@ import {
   getDoc,
   getDocs,
   limit,
-  orderBy,
   query,
   runTransaction,
   serverTimestamp,
@@ -113,12 +112,20 @@ export function listenToAuthState(callback) {
     return () => {}
   }
   return onAuthStateChanged(auth, async firebaseUser => {
-    if (!firebaseUser) {
+    try {
+      if (!firebaseUser) {
+        callback(null)
+        return
+      }
+      const profile = await ensureUserProfile(firebaseUser)
+      callback(profile)
+    } catch (error) {
+      console.error('Auth state restore failed', error)
       callback(null)
-      return
     }
-    const profile = await ensureUserProfile(firebaseUser)
-    callback(profile)
+  }, error => {
+    console.error('Auth listener failed', error)
+    callback(null)
   })
 }
 
@@ -141,7 +148,7 @@ export async function validateInviteCodeRemote(code) {
   const data = snap.data()
   const active = data.active !== false
   const maxUses = Number(data.maxUses || 1)
-  const used = Number(data.used || 0)
+  const used = Number(data.usedCount ?? data.used ?? 0)
   const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : data.expiresAt ? new Date(data.expiresAt) : null
   const expired = expiresAt ? expiresAt.getTime() < Date.now() : false
 
@@ -171,13 +178,13 @@ export async function signUpWithInvite({ email, password, inviteCode }) {
       const invite = inviteSnap.data()
       const active = invite.active !== false
       const maxUses = Number(invite.maxUses || 1)
-      const used = Number(invite.used || 0)
+      const used = Number(invite.usedCount ?? invite.used ?? 0)
       const expiresAt = invite.expiresAt?.toDate ? invite.expiresAt.toDate() : invite.expiresAt ? new Date(invite.expiresAt) : null
       const expired = expiresAt ? expiresAt.getTime() < Date.now() : false
       if (!active || expired || used >= maxUses) throw new Error('invalid-invite-code')
 
       transaction.update(inviteRef, {
-        used: used + 1,
+        usedCount: used + 1,
         lastUsedAt: serverTimestamp(),
         lastUsedByEmail: email,
         lastUsedByUid: credential.user.uid,
@@ -220,14 +227,14 @@ export async function createInviteCodeRemote({ code, label, maxUses = 1, created
       code: normalized,
       label: label || 'Teacher invite',
       maxUses: Number(maxUses || 1),
-      used: 0,
+      usedCount: 0,
       active: true,
       createdBy: createdBy || '',
       createdAt: nowIso(),
       createdAtServer: serverTimestamp(),
     })
   })
-  return { code: normalized, label: label || 'Teacher invite', maxUses: Number(maxUses || 1), used: 0, active: true }
+  return { code: normalized, label: label || 'Teacher invite', maxUses: Number(maxUses || 1), usedCount: 0, used: 0, active: true }
 }
 
 export async function createStudentInviteCodeRemote({ ownerUid, ownerNickname }) {
@@ -254,7 +261,7 @@ export async function createStudentInviteCodeRemote({ ownerUid, ownerNickname })
       code,
       label: `${ownerNickname || 'Student'} invite`,
       maxUses: 1,
-      used: 0,
+      usedCount: 0,
       active: true,
       createdBy: ownerUid,
       createdByRole: 'student',
@@ -263,14 +270,16 @@ export async function createStudentInviteCodeRemote({ ownerUid, ownerNickname })
     })
   })
 
-  return { code, label: `${ownerNickname || 'Student'} invite`, maxUses: 1, used: 0, active: true }
+  return { code, label: `${ownerNickname || 'Student'} invite`, maxUses: 1, usedCount: 0, used: 0, active: true }
 }
 
 export async function listInviteCodesRemote() {
   if (!canUseFirebase) return []
-  const q = query(collection(db, firestoreCollections.inviteCodes), orderBy('createdAt', 'desc'), limit(50))
+  const q = query(collection(db, firestoreCollections.inviteCodes), limit(50))
   const snap = await getDocs(q)
-  return snap.docs.map(item => ({ id: item.id, ...item.data() }))
+  return snap.docs
+    .map(item => { const data = item.data(); return { id: item.id, ...data, used: Number(data.usedCount ?? data.used ?? 0) } })
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
 }
 
 export async function createDiaryRemote({ user, diary }) {
@@ -293,7 +302,9 @@ export async function createDiaryRemote({ user, diary }) {
 
 export async function listMyDiariesRemote(userId) {
   if (!canUseFirebase || !userId) return []
-  const q = query(collection(db, firestoreCollections.diaries), where('userId', '==', userId), orderBy('createdAt', 'desc'), limit(100))
+  const q = query(collection(db, firestoreCollections.diaries), where('userId', '==', userId), limit(100))
   const snap = await getDocs(q)
-  return snap.docs.map(item => ({ id: item.id, ...item.data() }))
+  return snap.docs
+    .map(item => { const data = item.data(); return { id: item.id, ...data, used: Number(data.usedCount ?? data.used ?? 0) } })
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
 }

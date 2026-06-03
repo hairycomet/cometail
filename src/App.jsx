@@ -17,6 +17,7 @@ import SettingsPage from './pages/SettingsPage'
 import NotebookPage from './pages/NotebookPage'
 import ReportsPage from './pages/ReportsPage'
 import { useAppStore } from './store/useAppStore'
+import ErrorBoundary from './components/ErrorBoundary'
 
 function LoadingGate() {
   return <main className="loading-gate"><div className="spinner-orbit" /><p>Opening Cometail Universe...</p></main>
@@ -49,6 +50,7 @@ export default function App() {
   }, [initializeAuth])
 
   return (
+    <ErrorBoundary>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
@@ -69,5 +71,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </ErrorBoundary>
   )
 }

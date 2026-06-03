@@ -34,8 +34,8 @@ service cloud.firestore {
       allow create: if isTeacher() || (signedIn() && request.resource.data.createdBy == request.auth.uid && request.resource.data.maxUses == 1);
       allow update: if isTeacher() || (
         signedIn()
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['used', 'lastUsedAt', 'lastUsedByEmail', 'lastUsedByUid'])
-        && request.resource.data.used == resource.data.used + 1
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['usedCount', 'lastUsedAt', 'lastUsedByEmail', 'lastUsedByUid'])
+        && request.resource.data.usedCount == resource.data.usedCount + 1
         && request.resource.data.lastUsedByUid == request.auth.uid
       );
       allow delete: if isTeacher();

@@ -14,10 +14,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
 
   if (isAuthed) return <Navigate to="/" replace />
-
-  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async event => {
     event.preventDefault()

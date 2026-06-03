@@ -68,10 +68,32 @@ export const useAppStore = create(
           set({ isAuthReady: true })
           return () => {}
         }
-        if (get().authUnsubscribe) return get().authUnsubscribe
+
+        // Always start a fresh listener. A previous persisted or hot-reloaded listener
+        // should never keep the app trapped on the loading screen.
+        const previousUnsubscribe = get().authUnsubscribe
+        if (typeof previousUnsubscribe === 'function') {
+          try { previousUnsubscribe() } catch (_) { /* ignore stale listener cleanup */ }
+        }
+
+        set({ isAuthReady: false, authError: '' })
+        let settled = false
+        const finish = payload => {
+          settled = true
+          set({ ...payload, isAuthReady: true })
+        }
+
+        const timeoutId = window.setTimeout(() => {
+          if (!settled) {
+            console.warn('Auth restore timed out. Returning to login screen.')
+            finish({ isAuthed: false, user: sampleUser, authError: 'auth-restore-timeout' })
+          }
+        }, 7000)
+
         const unsubscribe = listenToAuthState(async profile => {
+          window.clearTimeout(timeoutId)
           if (!profile) {
-            set({ isAuthed: false, user: sampleUser, isAuthReady: true })
+            finish({ isAuthed: false, user: sampleUser })
             return
           }
           let nextDiaries = get().diaries
@@ -82,16 +104,26 @@ export const useAppStore = create(
           } catch (error) {
             console.warn('Firebase preload failed', error)
           }
-          set({ isAuthed: true, user: profile, diaries: nextDiaries?.length ? nextDiaries : get().diaries, inviteCodes: nextInviteCodes?.length ? nextInviteCodes : get().inviteCodes, isAuthReady: true })
+          finish({
+            isAuthed: true,
+            user: profile,
+            diaries: nextDiaries?.length ? nextDiaries : get().diaries,
+            inviteCodes: nextInviteCodes?.length ? nextInviteCodes : get().inviteCodes,
+          })
         })
-        set({ authUnsubscribe: unsubscribe })
-        return unsubscribe
+
+        const safeUnsubscribe = () => {
+          window.clearTimeout(timeoutId)
+          if (typeof unsubscribe === 'function') unsubscribe()
+        }
+        set({ authUnsubscribe: safeUnsubscribe })
+        return safeUnsubscribe
       },
       getLanguage: () => effectiveLanguage(get().user),
       validateInviteCode: code => {
         const normalized = normalizeInviteCode(code)
         const record = get().inviteCodes.find(item => item.code === normalized)
-        return Boolean(record && record.active && record.used < record.maxUses)
+        return Boolean(record && record.active && Number(record.usedCount ?? record.used ?? 0) < Number(record.maxUses || 1))
       },
       login: async ({ email, password }) => {
         const normalizedEmail = (email || '').trim().toLowerCase()
@@ -144,7 +176,7 @@ export const useAppStore = create(
         }
         set(state => ({
           isAuthed: true,
-          inviteCodes: state.inviteCodes.map(record => record.code === normalized ? { ...record, used: record.used + 1 } : record),
+          inviteCodes: state.inviteCodes.map(record => record.code === normalized ? { ...record, used: Number(record.usedCount ?? record.used ?? 0) + 1, usedCount: Number(record.usedCount ?? record.used ?? 0) + 1 } : record),
           user: {
             ...sampleUser,
             uid: crypto.randomUUID(),
@@ -441,6 +473,21 @@ export const useAppStore = create(
         toast.success(`행성에 ${value} Starlight 투자 완료`)
       },
     }),
-    { name: 'cometail-v8-firebase-foundation-store' },
+    {
+      name: 'cometail-v8-4-store',
+      partialize: state => ({
+        user: state.user,
+        diaries: state.diaries,
+        homework: state.homework,
+        students: state.students,
+        missions: state.missions,
+        quests: state.quests,
+        inviteCodes: state.inviteCodes,
+        typingRecords: state.typingRecords,
+        notifications: state.notifications,
+        theme: state.theme,
+        currentPrompt: state.currentPrompt,
+      }),
+    },
   ),
 )
