@@ -1,7 +1,7 @@
 {
-  "name": "cometail-v8-4-stability-fix",
+  "name": "cometail-v9-wow-polish",
   "private": true,
-  "version": "8.4.0",
+  "version": "9.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

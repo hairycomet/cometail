@@ -37,45 +37,59 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="onboarding-cinematic refined-onboarding">
+    <div className="onboarding-cinematic v9-onboarding">
       {isStory ? (
-        <section className="story-card refined-story-card v5-story-card">
-          <div className="story-animation refined-story-animation">
-            <div className="story-stars" aria-hidden="true"><i /><i /><i /><i /><i /></div>
-            <motion.div className="story-planet" animate={{ scale: [1, 1.06, 1], rotate: [0, 4, 0] }} transition={{ duration: 4, repeat: Infinity }} />
-            <motion.div className="story-orbit-ring" animate={{ rotate: [0, 360] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} />
-            <motion.div className="story-comet" animate={{ x: [-30, 35, -30], y: [20, -16, 20] }} transition={{ duration: 5, repeat: Infinity }}><CometAvatar level={step * 8 + 1} equipped={[]} /></motion.div>
-            <span className="story-emoji">{slide.emoji}</span>
+        <section className="story-card v9-story-card">
+          <div className="v9-story-visual">
+            <span className="v9-story-nebula" />
+            <span className="v9-story-stars" />
+            <motion.div className="v9-story-ring ring-one" animate={{ rotate: [0, 360] }} transition={{ duration: 22, repeat: Infinity, ease: 'linear' }} />
+            <motion.div className="v9-story-ring ring-two" animate={{ rotate: [360, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} />
+            <motion.div className="v9-story-planet" animate={{ scale: [1, 1.05, 1], y: [-4, 5, -4] }} transition={{ duration: 5, repeat: Infinity }} />
+            <motion.div className="v9-birth-core" animate={{ scale: [0.92, 1.08, 0.92], opacity: [.72, 1, .72] }} transition={{ duration: 2.8, repeat: Infinity }} />
+            <motion.div className="v9-story-comet" animate={{ x: [-18, 22, -18], y: [18, -18, 18] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
+              <CometAvatar level={step * 9 + 1} equipped={[]} />
+            </motion.div>
+            <span className="story-emoji v9-story-emoji">{slide.emoji}</span>
           </div>
           <AnimatePresence mode="wait">
-            <motion.div key={slide.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} className="story-copy refined-story-copy">
-              <p className="eyebrow">Cometail Story {step + 1}/{storySlides.length}</p>
+            <motion.div key={slide.id} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }} className="v9-story-copy">
+              <p className="eyebrow">Cometail Origin {step + 1}/{storySlides.length}</p>
               <h1>{slide.titleKo}</h1>
               <h2>{slide.titleEn}</h2>
               <p>{slide.bodyKo}</p>
               <p className="story-en">{slide.bodyEn}</p>
+              <div className="v9-story-progress" aria-label="Story progress">
+                {storySlides.map((item, index) => <span key={item.id} className={index <= step ? 'active' : ''} />)}
+              </div>
             </motion.div>
           </AnimatePresence>
-          <div className="story-actions no-skip-actions">
-            <button className="primary-button" onClick={next}>{step === storySlides.length - 1 ? '내 Comet Buddy 만들기' : '다음 이야기 보기'} <IconChevronRight size={18} /></button>
+          <div className="story-actions no-skip-actions v9-story-actions">
+            <button className="primary-button" onClick={next}>{step === storySlides.length - 1 ? '내 Comet Buddy 만나기' : '다음 별빛 보기'} <IconChevronRight size={18} /></button>
           </div>
         </section>
       ) : (
-        <form className="setup-card universe-setup refined-setup" onSubmit={save}>
-          <div className="section-heading centered">
-            <p className="eyebrow">Start your Cometail</p>
-            <h1>이제 너의 Comet Buddy를 시작해요</h1>
-            <p>처음에는 한국어 도움을 받을 수 있어요. 레벨이 오르면 Cometail은 자연스럽게 영어 중심의 우주로 전환됩니다.</p>
+        <form className="setup-card universe-setup v9-setup" onSubmit={save}>
+          <div className="v9-setup-preview">
+            <span className="v9-setup-glow" />
+            <CometAvatar level={1} equipped={[]} preview />
           </div>
-          <label>닉네임<input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="앱에서 사용할 이름" /></label>
-          <label>Comet Buddy 이름<input value={cometName} onChange={e => setCometName(e.target.value)} placeholder="예: Lumi, Nova, Aster" /></label>
-          <label>앱 언어<select value={appLanguage} onChange={e => setAppLanguage(e.target.value)}><option value="ko">한국어 도움 받기</option><option value="en">English only</option></select></label>
-          <label>목표 타입<select value={goalType} onChange={e => setGoalType(e.target.value)}>{goalTypes.map(type => <option key={type}>{type}</option>)}</select></label>
-          <label>이번 달 영어 목표<textarea value={goal} onChange={e => setGoal(e.target.value)} rows="3" placeholder="예: 매일 영어 일기 3문장 쓰기" /></label>
-          <div className="mini-palette-row">
-            {themePalettes.slice(0, 6).map(theme => <button type="button" key={theme.id} className={themeColor === theme.id ? 'active' : ''} onClick={() => setThemeColor(theme.id)}>{theme.emoji} {theme.name}</button>)}
+          <div className="v9-setup-form">
+            <div className="section-heading centered">
+              <p className="eyebrow">Wake your first comet</p>
+              <h1>이제 너의 Comet Buddy를 깨워요</h1>
+              <p>처음에는 한국어 도움을 받을 수 있어요. 레벨이 오르면 Cometail은 자연스럽게 영어 중심의 우주로 전환됩니다.</p>
+            </div>
+            <label>닉네임<input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="앱에서 사용할 이름" /></label>
+            <label>Comet Buddy 이름<input value={cometName} onChange={e => setCometName(e.target.value)} placeholder="예: Lumi, Nova, Aster" /></label>
+            <label>앱 언어<select value={appLanguage} onChange={e => setAppLanguage(e.target.value)}><option value="ko">한국어 도움 받기</option><option value="en">English only</option></select></label>
+            <label>목표 타입<select value={goalType} onChange={e => setGoalType(e.target.value)}>{goalTypes.map(type => <option key={type}>{type}</option>)}</select></label>
+            <label>이번 달 영어 목표<textarea value={goal} onChange={e => setGoal(e.target.value)} rows="3" placeholder="예: 매일 영어 일기 3문장 쓰기" /></label>
+            <div className="mini-palette-row v9-palette-row">
+              {themePalettes.slice(0, 6).map(theme => <button type="button" key={theme.id} className={themeColor === theme.id ? 'active' : ''} onClick={() => setThemeColor(theme.id)}>{theme.emoji} {theme.name}</button>)}
+            </div>
+            <button className="primary-button" disabled={saving}><IconSparkles size={18} /> {saving ? '별빛 저장 중...' : '내 커멧 시작하기'}</button>
           </div>
-          <button className="primary-button" disabled={saving}><IconSparkles size={18} /> {saving ? '저장 중...' : '내 커멧 시작하기'}</button>
         </form>
       )}
     </div>
