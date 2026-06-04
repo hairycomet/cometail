@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 
 export default function CometAvatar({ size = 'large', equipped = [], level = 1, preview = false }) {
+  const levelBand = Math.min(10, Math.floor(Number(level || 1) / 10))
   const isSmall = size === 'small'
   const tailCount = Math.min(5, Math.max(1, Math.floor(level / 10) + 1))
   const hasCap = equipped.includes('golden_cap')
@@ -19,11 +20,26 @@ export default function CometAvatar({ size = 'large', equipped = [], level = 1, 
   const hasGalaxyAura = equipped.includes('galaxy_aura')
   const hasMoonCat = equipped.includes('moon_cat')
   const hasRocketPuppy = equipped.includes('rocket_puppy')
+  const floatingAccessories = [
+    equipped.includes('book_bunny') && '🐰',
+    equipped.includes('grammar_ghost') && '👻',
+    equipped.includes('star_whale') && '🐋',
+    equipped.includes('seven_day_badge') && '📅',
+    equipped.includes('typing_runner_badge') && '⌨️',
+    equipped.includes('feedback_collector') && '📝',
+    equipped.includes('galaxy_pioneer') && '🚩',
+    equipped.includes('legend_frame') && '🏆',
+    equipped.includes('purple_orbit_frame') && '🟣',
+    equipped.includes('rose_diary_frame') && '🌹',
+    equipped.includes('sunrise_aura') && '🌅',
+    equipped.includes('focus_aura') && '🎯',
+    equipped.includes('royal_aura') && '👑',
+  ].filter(Boolean)
   const tails = Array.from({ length: tailCount }, (_, index) => index)
 
   return (
     <motion.div
-      className={`comet-avatar ${isSmall ? 'small' : ''} ${preview ? 'preview' : ''} ${hasFireTail ? 'fire-tail' : ''} ${hasIceTail ? 'ice-tail' : ''} ${hasSoftAura ? 'soft-aura' : ''} ${hasGalaxyAura ? 'galaxy-aura' : ''}`}
+      className={`comet-avatar level-band-${levelBand} ${isSmall ? 'small' : ''} ${preview ? 'preview' : ''} ${hasFireTail ? 'fire-tail' : ''} ${hasIceTail ? 'ice-tail' : ''} ${equipped.includes('rainbow_tail') ? 'rainbow-tail' : ''} ${equipped.includes('aurora_tail') ? 'aurora-tail' : ''} ${equipped.includes('meteor_tail') ? 'meteor-tail' : ''} ${hasSoftAura ? 'soft-aura' : ''} ${hasGalaxyAura ? 'galaxy-aura' : ''} ${equipped.includes('royal_aura') ? 'royal-aura' : ''}`}
       animate={{ y: [0, -8, 0], rotate: [0, 1.5, -1.5, 0] }}
       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       aria-label="Cometail character"
@@ -33,6 +49,7 @@ export default function CometAvatar({ size = 'large', equipped = [], level = 1, 
       {hasSoftAura && <div className="avatar-aura-soft" />}
       {hasMoonCat && <div className="avatar-pet moon-cat">🐈‍⬛</div>}
       {hasRocketPuppy && <div className="avatar-pet rocket-puppy">🐶</div>}
+      {floatingAccessories.length > 0 && <div className="avatar-accessory-cloud">{floatingAccessories.slice(0, 4).map((emoji, index) => <span key={`${emoji}-${index}`}>{emoji}</span>)}</div>}
       <svg viewBox="0 0 300 320" role="img">
         <defs>
           <linearGradient id={`tail-${size}`} x1="16" x2="175" y1="198" y2="100" gradientUnits="userSpaceOnUse">
@@ -82,6 +99,10 @@ export default function CometAvatar({ size = 'large', equipped = [], level = 1, 
         {hasWizard && <path d="M115 92l44-74 45 77c-30-13-60-14-89-3Z" fill="#6d28d9" />}
         {hasWizard && <circle cx="159" cy="55" r="7" fill="#fde68a" />}
         {hasCrown && <path d="M109 91l16-36 32 30 25-40 25 43 27-28-5 45c-42-17-80-18-120-1Z" fill="#facc15" stroke="#f59e0b" strokeWidth="4" />}
+        {equipped.includes('moon_beret') && <path d="M103 94c35-29 88-25 114 0-38 17-76 17-114 0Z" fill="#a78bfa" />}
+        {equipped.includes('aurora_beanie') && <path d="M110 92c28-25 82-27 106 2-32 22-77 21-106-2Z" fill="#22d3ee" />}
+        {equipped.includes('starlight_helmet') && <path d="M93 109c15-55 124-56 142 0-43-23-96-23-142 0Z" fill="#dbeafe" opacity=".9" />}
+        {equipped.includes('royal_comet_diadem') && <path d="M111 88l24-22 22 18 26-28 24 31c-37-15-62-15-96 1Z" fill="#c084fc" stroke="#f0abfc" strokeWidth="4" />}
         {hasRocket && <g transform="translate(215 232)"><path d="M0 12c22-27 38-28 50-24-1 19-12 34-38 50z" fill="#ef4444"/><circle cx="27" cy="4" r="8" fill="#bfdbfe"/><path d="M4 28l-14 8 6-16z" fill="#f97316"/></g>}
         {hasBook && <g transform="translate(218 231)"><rect x="0" y="0" width="38" height="46" rx="6" fill="#2563eb"/><path d="M8 8h20M8 18h22" stroke="#fff" strokeWidth="4" strokeLinecap="round"/></g>}
         {hasCoffee && <g transform="translate(220 235)"><rect x="0" y="6" width="34" height="36" rx="9" fill="#fff7ed"/><path d="M34 16h9c8 3 5 18-4 18h-5" stroke="#92400e" strokeWidth="5" fill="none"/><path d="M8 0c-5-9 9-10 4-20" stroke="#d97706" strokeWidth="4" strokeLinecap="round"/></g>}

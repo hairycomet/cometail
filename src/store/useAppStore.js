@@ -31,8 +31,9 @@ import {
 
 const calcLevel = points => Math.max(1, Math.floor(points / 100) + 1)
 const wearableTypes = ['Hat', 'Face', 'Outfit', 'Tail', 'Hand', 'Background', 'Badge', 'Pet', 'Aura', 'Frame']
-const randomItem = owned => {
-  const pool = shopItems.filter(item => wearableTypes.includes(item.type) && !owned.includes(item.id))
+const planetDecorTypes = ['Planet', 'Room']
+const randomItem = (owned, level = 1) => {
+  const pool = shopItems.filter(item => wearableTypes.includes(item.type) && !owned.includes(item.id) && Number(level || 1) >= Number(item.minLevel || 1))
   return pool[Math.floor(Math.random() * Math.max(1, pool.length))]
 }
 const effectiveLanguage = user => user.level >= 20 ? 'en' : user.appLanguage || 'ko'
@@ -345,6 +346,7 @@ export const useAppStore = create(
         const item = shopItems.find(product => product.id === itemId)
         const { user } = get()
         if (!item) return
+        if (Number(user.level || 1) < Number(item.minLevel || 1)) { toast.error(`Level ${item.minLevel}부터 열리는 아이템이에요`); return }
         if (item.id === 'extra_invite') {
           if (user.points < item.price) { toast.error('별빛이 부족해요'); return }
           set(state => ({ user: { ...state.user, points: state.user.points - item.price, inviteTickets: (state.user.inviteTickets || 0) + 1 } }))
@@ -355,7 +357,7 @@ export const useAppStore = create(
         if (user.owned?.includes(itemId) && item.type !== 'Gift Box') { toast('이미 가지고 있어요'); return }
         if (user.points < item.price) { toast.error('별빛이 부족해요'); return }
         if (item.type === 'Gift Box') {
-          const prize = randomItem(user.owned || [])
+          const prize = randomItem(user.owned || [], user.level)
           set(state => ({ user: { ...state.user, points: state.user.points - item.price, owned: [...new Set([...(state.user.owned || []), prize?.id].filter(Boolean))] } }))
           void persistUserRemote(get)
           toast.success(`${prize?.name || '아이템'}이 나왔어요`)
@@ -390,7 +392,7 @@ export const useAppStore = create(
       decoratePlanet: itemId => {
         const item = shopItems.find(product => product.id === itemId)
         const user = get().user
-        if (!item || !['Planet', 'Room'].includes(item.type)) return
+        if (!item || !planetDecorTypes.includes(item.type)) return
         if (!user.owned?.includes(itemId)) { toast.error('먼저 상점에서 구매해야 해요'); return }
         if (user.level < 30 && item.type === 'Planet') { toast.error('Level 30부터 행성 장식이 가능해요'); return }
         set(state => ({ user: { ...state.user, planetDecor: [...new Set([...(state.user.planetDecor || []), itemId])] } }))

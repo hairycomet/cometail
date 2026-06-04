@@ -1,113 +1,180 @@
 import { useMemo, useState } from 'react'
-import { IconLock, IconPlanet, IconRocket, IconSparkles, IconStars, IconTree, IconUsers, IconArrowRight } from '@tabler/icons-react'
+import {
+  IconArrowRight,
+  IconDice5,
+  IconLock,
+  IconMap2,
+  IconPlanet,
+  IconRocket,
+  IconSparkles,
+  IconStars,
+  IconTree,
+  IconUsers,
+  IconX,
+} from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import CometAvatar from '../components/CometAvatar'
-import { shopItems, universeMilestones, universeReactions } from '../data/content'
+import { getLevelStage, getNextLevelStage, levelStages, shopItems, universeReactions } from '../data/content'
 import { useAppStore } from '../store/useAppStore'
+
+const mapSlots = [
+  { x: 48, y: 52, scale: 1.45 },
+  { x: 20, y: 56, scale: .9 },
+  { x: 38, y: 27, scale: .72 },
+  { x: 62, y: 30, scale: .82 },
+  { x: 78, y: 54, scale: .96 },
+  { x: 31, y: 74, scale: .66 },
+  { x: 58, y: 76, scale: .7 },
+  { x: 86, y: 28, scale: .64 },
+  { x: 15, y: 29, scale: .62 },
+  { x: 72, y: 78, scale: .58 },
+  { x: 90, y: 70, scale: .52 },
+  { x: 43, y: 78, scale: .52 },
+]
 
 function progressToNext(value, unit) {
   const current = Number(value || 0)
   const step = Number(unit || 100)
   const inStep = current % step
-  return {
-    inStep,
-    needed: step - inStep,
-    pct: Math.min(100, Math.round((inStep / step) * 100)),
-  }
+  return { inStep, needed: step - inStep, pct: Math.min(100, Math.round((inStep / step) * 100)) }
 }
 
-function Planet({ student, mine, canCheer, cheers, onCheer }) {
-  const planetTier = Math.max(0, Math.floor(Number(student.planetInvestment || 0) / 500))
-  const universeTier = Math.max(1, 1 + Math.floor(Number(student.universeInvestment || 0) / 300))
-  const hasPlanet = student.level >= 20 || student.planet || planetTier > 0
-  const size = Math.min(176, 58 + Number(student.level || 1) * 1.35 + planetTier * 18 + (mine ? 8 : 0))
-  const tierLabel = hasPlanet ? (planetTier > 0 ? `Tier ${planetTier} Planet` : 'Small Planet') : 'Comet only'
+function getPlanetTier(student) {
+  const byInvestment = Math.floor(Number(student.planetInvestment || 0) / 500)
+  const byLevel = student.level >= 100 ? 9 : student.level >= 80 ? 8 : student.level >= 70 ? 7 : student.level >= 60 ? 6 : student.level >= 50 ? 5 : student.level >= 40 ? 4 : student.level >= 30 ? 3 : student.level >= 20 ? 2 : student.level >= 10 ? 1 : 0
+  return Math.max(byInvestment, byLevel)
+}
 
+function getGalaxySize(user) {
+  return Math.max(1, 1 + Math.floor(Number(user.universeInvestment || 0) / 300))
+}
+
+function StudentNode({ student, mine, slot, onSelect }) {
+  const stage = getLevelStage(student.level)
+  const planetTier = getPlanetTier(student)
+  const hasPlanet = Number(student.level || 1) >= 20 || planetTier > 1
+  const isCometOnly = !hasPlanet
+  const style = {
+    left: `${slot.x}%`,
+    top: `${slot.y}%`,
+    '--node-scale': slot.scale,
+    '--planet-tier': planetTier,
+  }
   return (
-    <article className={`planet-card tone-${student.themeColor || 'purple'} tier-${Math.min(5, planetTier)} ${mine ? 'mine' : ''} ${hasPlanet ? 'has-planet' : 'comet-only'}`}>
-      {mine && <div className="my-planet-ribbon">My Space</div>}
-      <div className="planet-orbit" style={{ '--planet-size': `${size}px` }}>
-        <div className="planet-sphere"><span>{hasPlanet ? '🪐' : '☄️'}</span></div>
-        <CometAvatar size="small" equipped={mine ? student.equipped : []} level={student.level} />
-      </div>
-      <strong>{mine ? `${student.cometName} 나의 공간` : student.cometName}</strong>
-      <span>Level {student.level} · {student.streak} day streak</span>
-      <small>{tierLabel} · Galaxy Size {universeTier}</small>
-      {mine && (
-        <div className="planet-mini-stats">
-          <em>우주 투자 {student.universeInvestment || 0}</em>
-          <em>행성 투자 {student.planetInvestment || 0}</em>
+    <button type="button" className={`universe-node ${mine ? 'mine' : ''} tier-${Math.min(9, planetTier)} level-band-${Math.min(10, Math.floor(Number(student.level || 1) / 10))} ${isCometOnly ? 'comet-only' : 'planet-ready'}`} style={style} onClick={() => onSelect(student)}>
+      <span className="planet-halo" />
+      <span className="free-planet-sphere"><span>{hasPlanet ? '🪐' : '☄️'}</span></span>
+      <CometAvatar size="small" equipped={mine ? student.equipped : []} level={student.level} />
+      <span className="node-name">{mine ? '👑 나의 행성' : student.cometName || student.nickname}</span>
+      <small>Lv. {student.level} · {stage.planet}</small>
+    </button>
+  )
+}
+
+function VisitorPanel({ student, user, onClose, onCheer }) {
+  if (!student) return null
+  const stage = getLevelStage(student.level)
+  const next = getNextLevelStage(student.level)
+  const planetTier = getPlanetTier(student)
+  const mine = (student.uid || student.id) === user.uid
+  return (
+    <div className="visitor-backdrop" onClick={onClose}>
+      <aside className="visitor-panel" onClick={event => event.stopPropagation()}>
+        <button className="visitor-close" onClick={onClose}><IconX size={18} /></button>
+        <div className="visitor-hero">
+          <div className={`visitor-planet tier-${Math.min(9, planetTier)}`}><CometAvatar size="small" equipped={mine ? student.equipped : []} level={student.level} /></div>
+          <div>
+            <p className="eyebrow">{mine ? 'My Planet' : 'Visited Planet'}</p>
+            <h2>{mine ? `${student.cometName} 나의 공간` : `${student.cometName || student.nickname}의 행성`}</h2>
+            <p>Level {student.level} · {student.streak || 0} day streak · {stage.title}</p>
+          </div>
         </div>
-      )}
-      {canCheer && !mine && <div className="reaction-row">{universeReactions.slice(0, 3).map(reaction => {
-        const done = cheers?.[`${student.id}-${reaction.id}`]
-        return <button key={reaction.id} disabled={done} onClick={() => onCheer(student.id, reaction.id)}>{reaction.emoji}<span>{done ? 'Sent' : reaction.labelKo}</span></button>
-      })}</div>}
-    </article>
+        <div className="visitor-stats">
+          <div><strong>{stage.planet}</strong><span>현재 행성 단계</span></div>
+          <div><strong>Tier {planetTier}</strong><span>Planet Tier</span></div>
+          <div><strong>{student.totalEarned || student.points || 0}</strong><span>Total XP</span></div>
+        </div>
+        <div className="visitor-unlock-card">
+          <strong>현재 보이는 차이</strong>
+          <p>{stage.visual}</p>
+          {next ? <small>다음 큰 변화: Level {next.level} · {next.unlock}</small> : <small>최고 단계의 Legendary Comet이에요.</small>}
+        </div>
+        {!mine && <div className="reaction-row visitor-reactions">{universeReactions.map(reaction => <button key={reaction.id} onClick={() => onCheer(student.uid || student.id, reaction.id)}>{reaction.emoji}<span>{reaction.labelKo}</span></button>)}</div>}
+        {mine && <div className="visitor-actions"><Link className="primary-button" to="/wardrobe">내 커멧 꾸미기</Link><Link className="secondary-button" to="/shop">행성 장식 사러가기</Link></div>}
+      </aside>
+    </div>
   )
 }
 
 export default function UniversePage() {
   const { user, students, isFirebaseMode, investUniverse, investPlanet, cheerStudent, decoratePlanet, removePlanetDecor } = useAppStore()
   const [amount, setAmount] = useState(100)
+  const [selectedStudent, setSelectedStudent] = useState(null)
   const canVisit = user.level >= 5
   const canLaunch = user.level >= 10
   const canPlanet = user.level >= 20
   const canDecorate = user.level >= 30
-  const universeSize = 1 + Math.floor((user.universeInvestment || 0) / 300)
+  const universeSize = getGalaxySize(user)
   const universeProgress = progressToNext(user.universeInvestment, 300)
-  const planetTier = Math.floor((user.planetInvestment || 0) / 500)
+  const planetTier = getPlanetTier(user)
   const planetProgress = progressToNext(user.planetInvestment, 500)
+  const currentStage = getLevelStage(user.level)
+  const nextStage = getNextLevelStage(user.level)
   const planetDecorItems = useMemo(() => shopItems.filter(item => ['Planet', 'Room'].includes(item.type) && user.owned?.includes(item.id)), [user.owned])
   const appliedDecor = useMemo(() => shopItems.filter(item => user.planetDecor?.includes(item.id)), [user.planetDecor])
   const realPeers = useMemo(() => {
-    const list = (students || [])
+    return (students || [])
       .filter(student => student)
       .filter(student => (student.uid || student.id) !== user.uid)
       .filter(student => !isFirebaseMode || Boolean(student.uid))
-    return list
+      .sort((a, b) => Number(b.level || 0) - Number(a.level || 0))
   }, [students, user.uid, isFirebaseMode])
-  const myStudent = {
-    ...user,
-    id: user.uid || 'me',
-    name: user.nickname,
-    planet: canPlanet ? (planetTier ? `Tier ${planetTier} Planet` : 'Small Planet Ready') : null,
+  const myStudent = { ...user, id: user.uid || 'me', name: user.nickname, planet: canPlanet ? currentStage.planet : null }
+  const galaxyStudents = [myStudent, ...realPeers].slice(0, mapSlots.length)
+  const randomVisit = () => {
+    const pool = galaxyStudents.filter(Boolean)
+    if (!pool.length) return
+    const choice = pool[Math.floor(Math.random() * pool.length)]
+    setSelectedStudent(choice)
   }
-  const galaxyStageClass = `universe-stage full-galaxy-stage galaxy-size-${Math.min(6, universeSize)} planet-tier-${Math.min(6, planetTier)}`
 
   return (
-    <div className="universe-page page-stack">
+    <div className="universe-page page-stack hybrid-universe-page">
       <div className="page-header universe-page-title">
-        <div><p className="eyebrow">Cometail Universe</p><h1>모두가 같은 우주에서 빛나는 공간</h1><p>처음에는 구경만 가능하고, 레벨이 오르면 내 커멧을 띄우고, 더 성장하면 나만의 행성과 장식을 만들 수 있어요.</p></div>
-        <div className="point-chip large"><IconSparkles size={18} /> {user.points} Starlight</div>
+        <div><p className="eyebrow">Cometail Universe</p><h1>모두가 빛나는 공유 우주 공간</h1><p>행성은 줄 세워진 카드가 아니라, 같은 우주 안에 자유롭게 떠 있어요. 친구의 행성을 눌러 구경하고, 랜덤 방문으로 새로운 커멧을 만나보세요.</p></div>
+        <div className="header-actions"><button className="secondary-button" onClick={randomVisit}><IconDice5 size={18} /> 랜덤 방문</button><div className="point-chip large"><IconSparkles size={18} /> {user.points} Starlight</div></div>
       </div>
 
-      <section className={galaxyStageClass}>
-        <div className="galaxy-cloud one" /><div className="galaxy-cloud two" /><div className="galaxy-cloud three" />
-        <div className="universe-label"><IconStars size={18} /> Shared Galaxy · Size {universeSize}</div>
-        <div className="universe-state-chip"><IconUsers size={16} /> {realPeers.length + 1} Comet{realPeers.length ? 's' : ''} in this galaxy</div>
+      <section className={`shared-universe-map galaxy-size-${Math.min(6, universeSize)} planet-tier-${Math.min(9, planetTier)} ${!canVisit ? 'locked-preview' : ''}`}>
+        <div className="space-grid-line" /><div className="space-nebula nebula-a" /><div className="space-nebula nebula-b" /><div className="space-core" />
+        <div className="map-topbar"><div><span className="universe-label"><IconStars size={18} /> Shared Galaxy · Size {universeSize}</span><small>{galaxyStudents.length}명의 커멧이 함께 빛나고 있어요</small></div><button className="ghost-button" onClick={randomVisit}><IconMap2 size={18} /> 우주 여행</button></div>
         {!canVisit && <div className="locked-overlay"><IconLock size={30} /><strong>Level 5부터 우주에 입장할 수 있어요.</strong><p>지금은 미리보기만 가능해요. 일기와 미션으로 별빛을 모아보세요.</p></div>}
         {canVisit && !canLaunch && <div className="floating-tip"><IconRocket size={18} /> Level 10부터 내 Comet을 공용 우주에 띄울 수 있어요.</div>}
-        <div className={`planet-map ${!canVisit ? 'blurred' : ''} ${realPeers.length === 0 ? 'only-me' : ''}`}>
-          <Planet student={myStudent} mine canCheer={false} cheers={user.universeCheers} onCheer={cheerStudent} />
-          {realPeers.map(student => <Planet key={student.uid || student.id} student={student} canCheer={canVisit} cheers={user.universeCheers} onCheer={cheerStudent} />)}
+        <div className="free-planet-map">
+          {galaxyStudents.map((student, index) => <StudentNode key={student.uid || student.id || index} student={student} mine={(student.uid || student.id) === (user.uid || 'me')} slot={mapSlots[index]} onSelect={setSelectedStudent} />)}
         </div>
-        {isFirebaseMode && realPeers.length === 0 && <div className="real-galaxy-note">지금은 실제 가입한 학생이 아직 거의 없어서 나의 공간만 보여요. 학생들이 가입하면 이곳에 실제 커멧과 행성이 하나씩 나타나요.</div>}
+        {isFirebaseMode && realPeers.length === 0 && <div className="real-galaxy-note compact-note">아직 실제 가입한 학생이 거의 없어서 나의 행성이 중심에 보여요. 학생들이 들어오면 이곳에 실제 행성이 하나씩 떠오릅니다.</div>}
       </section>
 
-      <section className="universe-grid">
+      <section className="universe-status-grid">
         <div className="panel investment-panel upgraded-investment-card">
-          <div className="panel-title"><h2>공용 우주 투자</h2><IconRocket size={20} /></div>
-          <p className="muted">남는 Starlight를 공용 우주 확장에 투자해요. 투자할수록 Shared Galaxy의 Size와 배경 깊이가 커져요.</p>
-          <div className="investment-level-box"><strong>Galaxy Size {universeSize}</strong><span>다음 확장까지 {universeProgress.needed} Starlight</span></div>
+          <div className="panel-title"><h2>공용 우주 성장</h2><IconRocket size={20} /></div>
+          <p className="muted">함께 투자할수록 공유 우주가 넓어지고, 더 많은 장식과 이벤트 공간이 열립니다.</p>
+          <div className="investment-level-box"><strong>Shared Galaxy Lv. {universeSize}</strong><span>다음 확장까지 {universeProgress.needed} Starlight</span></div>
           <div className="progress-track investment-progress"><div style={{ width: `${universeProgress.pct}%` }} /></div>
           <label>투자할 별빛<input type="number" value={amount} onChange={e => setAmount(e.target.value)} min="10" step="10" /></label>
           <button className="primary-button" onClick={() => investUniverse(amount)}>우주에 투자하기</button>
-          <div className="investment-stat"><strong>{user.universeInvestment || 0}</strong><span>Universe investment</span></div>
         </div>
         <div className="panel investment-panel upgraded-investment-card">
-          <div className="panel-title"><h2>내 행성</h2><IconPlanet size={20} /></div>
-          {!canPlanet ? <div className="empty-state"><IconLock size={28} /><strong>Level 20부터 행성을 만들 수 있어요.</strong><p>그 전까지는 우주 구경과 커멧 띄우기만 가능해요.</p></div> : <><p className="muted">행성은 장기 성장 목표예요. 투자할수록 행성 크기, 링, 위성, 장식이 해금됩니다.</p><div className="investment-level-box planet"><strong>Planet Tier {planetTier}</strong><span>다음 Tier까지 {planetProgress.needed} Starlight</span></div><div className="progress-track investment-progress planet"><div style={{ width: `${planetProgress.pct}%` }} /></div><button className="primary-button" onClick={() => investPlanet(amount)}>내 행성에 투자하기</button><div className="investment-stat"><strong>{user.planetInvestment || 0}</strong><span>Planet investment · Tier {planetTier}</span></div></>}
+          <div className="panel-title"><h2>내 행성 성장</h2><IconPlanet size={20} /></div>
+          {!canPlanet ? <div className="empty-state"><IconLock size={28} /><strong>Level 20부터 행성을 만들 수 있어요.</strong><p>Level {user.level} · 다음 큰 해금: {nextStage ? `Level ${nextStage.level} ${nextStage.unlock}` : 'Legendary 단계'}</p></div> : <><p className="muted">행성에 투자하면 크기, 링, 위성, 장식 슬롯이 단계적으로 열립니다.</p><div className="investment-level-box planet"><strong>Planet Tier {planetTier}</strong><span>다음 Tier까지 {planetProgress.needed} Starlight</span></div><div className="progress-track investment-progress planet"><div style={{ width: `${planetProgress.pct}%` }} /></div><button className="primary-button" onClick={() => investPlanet(amount)}>내 행성에 투자하기</button></>}
+        </div>
+        <div className="panel level-roadmap-panel">
+          <div className="panel-title"><h2>레벨별 변화</h2><span>{currentStage.title}</span></div>
+          <p className="muted">레벨이 오르면 숫자만 바뀌는 것이 아니라, 꼬리, 오라, 행성, 장식 슬롯이 계속 달라져요.</p>
+          <div className="compact-level-roadmap">
+            {levelStages.map(stage => <div key={stage.level} className={user.level >= stage.level ? 'unlocked' : 'locked'}><strong>Lv.{stage.level}</strong><span>{stage.unlock}</span></div>)}
+          </div>
         </div>
       </section>
 
@@ -124,12 +191,7 @@ export default function UniversePage() {
         {appliedDecor.length > 0 && <div className="applied-decor-row"><strong>적용 중</strong>{appliedDecor.map(item => <span key={item.id}>{item.emoji} {item.name}</span>)}</div>}
       </section>
 
-      <section className="panel wide">
-        <div className="panel-title"><h2>Universe milestones</h2><span>{canDecorate ? 'Planet decoration unlocked' : 'Keep growing'}</span></div>
-        <div className="milestone-grid">
-          {universeMilestones.map(milestone => <div key={milestone.level} className={user.level >= milestone.level ? 'unlocked' : 'locked'}><strong>Level {milestone.level}</strong><h3>{milestone.title}</h3><p>{milestone.desc}</p></div>)}
-        </div>
-      </section>
+      <VisitorPanel student={selectedStudent} user={user} onClose={() => setSelectedStudent(null)} onCheer={cheerStudent} />
     </div>
   )
 }
