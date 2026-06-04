@@ -45,6 +45,18 @@ const createStudentCode = nickname => {
   return `${seed}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
 }
 
+const persistUserRemote = async get => {
+  if (!canUseFirebase) return
+  const user = get().user
+  if (!user?.uid) return
+  const { isAdmin, ...profile } = user
+  try {
+    await saveUserProfile(user.uid, profile)
+  } catch (error) {
+    console.warn('User progress sync failed', error)
+  }
+}
+
 export const useAppStore = create(
   persist(
     (set, get) => ({
@@ -224,9 +236,13 @@ export const useAppStore = create(
       toggleTheme: () => set(state => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setThemeColor: themeColor => {
         set(state => ({ user: { ...state.user, themeColor } }))
+        void persistUserRemote(get)
         toast.success('테마를 바꿨어요')
       },
-      setDisplayMode: displayMode => set(state => ({ user: { ...state.user, displayMode } })),
+      setDisplayMode: displayMode => {
+        set(state => ({ user: { ...state.user, displayMode } }))
+        void persistUserRemote(get)
+      },
       updateProfile: async data => {
         set(state => ({ user: { ...state.user, ...data } }))
         if (canUseFirebase) {
@@ -247,17 +263,21 @@ export const useAppStore = create(
           return
         }
         set(state => ({ user: { ...state.user, appLanguage } }))
+        void persistUserRemote(get)
       },
       rotatePrompt: () => {
         const current = get().currentPrompt
         const index = diaryPrompts.indexOf(current)
         set({ currentPrompt: diaryPrompts[(index + 1) % diaryPrompts.length] })
       },
-      addPoints: points => set(state => {
-        const next = state.user.points + points
-        const totalEarned = (state.user.totalEarned || state.user.points) + points
-        return { user: { ...state.user, points: next, totalEarned, level: calcLevel(totalEarned) } }
-      }),
+      addPoints: points => {
+        set(state => {
+          const next = state.user.points + points
+          const totalEarned = (state.user.totalEarned || state.user.points) + points
+          return { user: { ...state.user, points: next, totalEarned, level: calcLevel(totalEarned) } }
+        })
+        void persistUserRemote(get)
+      },
       addDiary: async ({ title, content, visibility, feedbackRequested = false }) => {
         const entry = {
           id: crypto.randomUUID(), userId: get().user.uid, nickname: get().user.nickname,
@@ -279,6 +299,7 @@ export const useAppStore = create(
             user: { ...state.user, completedMissions, points: newPoints, totalEarned, level: calcLevel(totalEarned), streak: state.user.streak + 1, longestStreak: Math.max(state.user.longestStreak, state.user.streak + 1) },
           }
         })
+        void persistUserRemote(get)
         toast.success('+10 Starlight')
       },
       completeMission: missionId => {
@@ -289,6 +310,7 @@ export const useAppStore = create(
           const totalEarned = (state.user.totalEarned || state.user.points) + mission.reward
           return { user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedMissions: [...(state.user.completedMissions || []), missionId] } }
         })
+        void persistUserRemote(get)
         toast.success(`+${mission.reward} Starlight`)
       },
       completeQuest: questId => {
@@ -299,6 +321,7 @@ export const useAppStore = create(
           const totalEarned = (state.user.totalEarned || state.user.points) + quest.reward
           return { user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedQuests: [...(state.user.completedQuests || []), questId] } }
         })
+        void persistUserRemote(get)
         toast.success(`+${quest.reward} Starlight`)
       },
       submitHomework: id => {
@@ -307,6 +330,7 @@ export const useAppStore = create(
           const totalEarned = (state.user.totalEarned || state.user.points) + 15
           return { homework: state.homework.map(item => item.id === id ? { ...item, status: 'submitted' } : item), user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned) } }
         })
+        void persistUserRemote(get)
         toast.success('+15 Starlight')
       },
       buyItem: itemId => {
@@ -316,6 +340,7 @@ export const useAppStore = create(
         if (item.id === 'extra_invite') {
           if (user.points < item.price) { toast.error('별빛이 부족해요'); return }
           set(state => ({ user: { ...state.user, points: state.user.points - item.price, inviteTickets: (state.user.inviteTickets || 0) + 1 } }))
+          void persistUserRemote(get)
           toast.success('초대권 1장이 추가됐어요')
           return
         }
@@ -324,10 +349,12 @@ export const useAppStore = create(
         if (item.type === 'Gift Box') {
           const prize = randomItem(user.owned || [])
           set(state => ({ user: { ...state.user, points: state.user.points - item.price, owned: [...new Set([...(state.user.owned || []), prize?.id].filter(Boolean))] } }))
+          void persistUserRemote(get)
           toast.success(`${prize?.name || '아이템'}이 나왔어요`)
           return
         }
         set(state => ({ user: { ...state.user, points: state.user.points - item.price, owned: [...new Set([...(state.user.owned || []), itemId])] } }))
+        void persistUserRemote(get)
         toast.success(`${item.name} 구매 완료`)
       },
       equipItem: itemId => {
@@ -338,13 +365,20 @@ export const useAppStore = create(
           const kept = (state.user.equipped || []).filter(id => !sameTypeIds.includes(id))
           return { user: { ...state.user, equipped: [...kept, itemId] } }
         })
+        void persistUserRemote(get)
         toast.success('장착했어요')
       },
-      unequipType: type => set(state => {
-        const sameTypeIds = shopItems.filter(product => product.type === type).map(product => product.id)
-        return { user: { ...state.user, equipped: (state.user.equipped || []).filter(id => !sameTypeIds.includes(id)) } }
-      }),
-      resetEquipped: () => set(state => ({ user: { ...state.user, equipped: [] } })),
+      unequipType: type => {
+        set(state => {
+          const sameTypeIds = shopItems.filter(product => product.type === type).map(product => product.id)
+          return { user: { ...state.user, equipped: (state.user.equipped || []).filter(id => !sameTypeIds.includes(id)) } }
+        })
+        void persistUserRemote(get)
+      },
+      resetEquipped: () => {
+        set(state => ({ user: { ...state.user, equipped: [] } }))
+        void persistUserRemote(get)
+      },
       decoratePlanet: itemId => {
         const item = shopItems.find(product => product.id === itemId)
         const user = get().user
@@ -352,11 +386,16 @@ export const useAppStore = create(
         if (!user.owned?.includes(itemId)) { toast.error('먼저 상점에서 구매해야 해요'); return }
         if (user.level < 30 && item.type === 'Planet') { toast.error('Level 30부터 행성 장식이 가능해요'); return }
         set(state => ({ user: { ...state.user, planetDecor: [...new Set([...(state.user.planetDecor || []), itemId])] } }))
+        void persistUserRemote(get)
         toast.success('우주 장식을 적용했어요')
       },
-      removePlanetDecor: itemId => set(state => ({ user: { ...state.user, planetDecor: (state.user.planetDecor || []).filter(id => id !== itemId) } })),
+      removePlanetDecor: itemId => {
+        set(state => ({ user: { ...state.user, planetDecor: (state.user.planetDecor || []).filter(id => id !== itemId) } }))
+        void persistUserRemote(get)
+      },
       cheerStudent: (studentId, reactionId) => {
         set(state => ({ user: { ...state.user, universeCheers: { ...(state.user.universeCheers || {}), [`${studentId}-${reactionId}`]: true } } }))
+        void persistUserRemote(get)
         toast.success('응원을 보냈어요')
       },
       generateInviteCode: async () => {
@@ -400,6 +439,7 @@ export const useAppStore = create(
       saveExpression: expression => {
         if (!expression?.trim()) return
         set(state => ({ user: { ...state.user, savedExpressions: [...new Set([...(state.user.savedExpressions || []), expression.trim()])] } }))
+        void persistUserRemote(get)
         toast.success('표현 보관함에 저장했어요')
       },
       addFeedback: (diaryId, feedbackData) => {
@@ -415,6 +455,7 @@ export const useAppStore = create(
           const owned = itemId ? [...new Set([...(state.user.owned || []), itemId])] : state.user.owned
           return { user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), owned } }
         })
+        void persistUserRemote(get)
         toast.success('선생님 선물을 지급했어요')
       },
       addHomework: homework => {
@@ -437,6 +478,7 @@ export const useAppStore = create(
         })
         const updatedUser = get().user
         const latest = updatedUser.typingRecords?.[0]
+        void persistUserRemote(get)
         if (latest?.reward) toast.success(`+${latest.reward} Starlight for typing`)
       },
       reviewExpression: expression => {
@@ -456,6 +498,7 @@ export const useAppStore = create(
             },
           }
         })
+        void persistUserRemote(get)
         toast.success('+5 Starlight for review')
       },
       updateHomeworkStatus: (id, status) => {
@@ -465,6 +508,7 @@ export const useAppStore = create(
         const value = Number(amount)
         if (!value || get().user.points < value) { toast.error('투자할 별빛이 부족해요'); return }
         set(state => ({ user: { ...state.user, points: state.user.points - value, universeInvestment: (state.user.universeInvestment || 0) + value } }))
+        void persistUserRemote(get)
         toast.success(`우주에 ${value} Starlight 투자 완료`)
       },
       investPlanet: amount => {
@@ -473,6 +517,7 @@ export const useAppStore = create(
         if (user.level < 20) { toast.error('Level 20부터 행성을 만들 수 있어요'); return }
         if (!value || user.points < value) { toast.error('투자할 별빛이 부족해요'); return }
         set(state => ({ user: { ...state.user, points: state.user.points - value, planetInvestment: (state.user.planetInvestment || 0) + value } }))
+        void persistUserRemote(get)
         toast.success(`행성에 ${value} Starlight 투자 완료`)
       },
     }),

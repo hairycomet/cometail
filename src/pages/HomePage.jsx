@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { IconFlame, IconPencilPlus, IconTrophy, IconChartBar, IconShieldCheck, IconGift, IconHanger, IconPlanet, IconSparkles, IconArrowRight, IconStarFilled } from '@tabler/icons-react'
+import { IconFlame, IconPencilPlus, IconTrophy, IconShieldCheck, IconGift, IconHanger, IconPlanet, IconSparkles, IconArrowRight, IconStarFilled, IconKeyboard, IconClipboardCheck, IconCalendarStar } from '@tabler/icons-react'
 import CometAvatar from '../components/CometAvatar'
 import StatCard from '../components/StatCard'
 import Heatmap from '../components/Heatmap'
@@ -17,6 +17,12 @@ export default function HomePage() {
   const xpInLevel = Math.max(0, totalEarned - levelStart)
   const xpNeeded = Math.max(0, nextLevelAt - totalEarned)
   const progress = Math.min(100, Math.round((xpInLevel / 100) * 100))
+  const xpCards = [
+    { icon: <IconPencilPlus size={24} />, title: '일기 작성', value: '+10 XP', className: 'diary' },
+    { icon: <IconKeyboard size={24} />, title: '타자 연습 완료', value: '+5 XP부터', className: 'typing' },
+    { icon: <IconClipboardCheck size={24} />, title: '숙제 제출', value: '+15 XP', className: 'task' },
+    { icon: <IconCalendarStar size={24} />, title: '7일 스트릭 달성', value: '보너스 XP', className: 'streak' },
+  ]
   const ranking = [...new Set([user.nickname, 'TOEFL Star', 'IELTS Learner', 'Young Writer'])]
   const canEnterUniverse = user.level >= 5
   const canLaunch = user.level >= 10
@@ -30,11 +36,8 @@ export default function HomePage() {
         <div className="hero-copy v9-home-copy">
           <p className="eyebrow">Level {user.level} · {user.streak} day streak</p>
           <h1>{lang === 'ko' ? `${user.cometName}가 오늘의 별빛을 기다리고 있어요.` : `${user.cometName} is waiting for today’s starlight.`}</h1>
-          <p className="prompt-preview">Today’s spark: {currentPrompt}</p>
-          <div className="v9-next-action">
-            <IconStarFilled size={18} />
-            <span>일기를 쓰면 +10 Starlight가 커멧 꼬리로 날아가요.</span>
-          </div>
+          <p className="prompt-preview">오늘의 기록이 쌓일수록 커멧은 더 밝아지고, 우주는 더 넓어져요.</p>
+          <p className="v94-spark-prompt">Today’s spark: {currentPrompt}</p>
           <div className="hero-actions v9-hero-actions">
             <Link className="primary-button" to="/diary/new"><IconPencilPlus size={18} /> 오늘 일기 쓰기</Link>
             <Link className="secondary-button" to="/wardrobe"><IconHanger size={18} /> 꾸미기</Link>
@@ -45,9 +48,36 @@ export default function HomePage() {
           <div className="v9-stage-orbit" />
           <CometAvatar equipped={user.equipped} level={user.level} />
           <div className="v9-avatar-caption"><strong>{user.cometName}</strong><span>{user.points} Starlight</span></div>
-          <div className="v93-level-badge">
-            <span>Level {user.level}</span>
-            <strong>{xpInLevel}/100 XP</strong>
+        </div>
+
+        <div className="v94-hero-xp">
+          <div className="v94-level-medal">
+            <span><IconStarFilled size={34} /></span>
+            <div>
+              <small>Level</small>
+              <strong>{user.level}</strong>
+            </div>
+          </div>
+          <div className="v94-xp-main">
+            <div className="v94-xp-head">
+              <strong>{xpInLevel} / 100 XP</strong>
+              <span>다음 레벨까지 {xpNeeded} XP</span>
+            </div>
+            <div className="v94-xp-track" aria-label={`Level progress ${progress}%`}>
+              <div style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="v94-xp-earn">
+          <p><IconSparkles size={18} /> XP는 이렇게 쌓여요!</p>
+          <div>
+            {xpCards.map(card => (
+              <article className={`v94-xp-card ${card.className}`} key={card.title}>
+                <span>{card.icon}</span>
+                <div><strong>{card.title}</strong><em>{card.value}</em></div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
