@@ -21,6 +21,7 @@ import {
   listenToAuthState,
   listInviteCodesRemote,
   listMyDiariesRemote,
+  listUniverseStudentsRemote,
   normalizeInviteCode,
   saveUserProfile,
   signInCometail,
@@ -110,8 +111,10 @@ export const useAppStore = create(
           }
           let nextDiaries = get().diaries
           let nextInviteCodes = get().inviteCodes
+          let nextStudents = []
           try {
             nextDiaries = await listMyDiariesRemote(profile.uid)
+            nextStudents = await listUniverseStudentsRemote()
             if (profile.isAdmin) nextInviteCodes = await listInviteCodesRemote()
           } catch (error) {
             console.warn('Firebase preload failed', error)
@@ -119,7 +122,8 @@ export const useAppStore = create(
           finish({
             isAuthed: true,
             user: profile,
-            diaries: nextDiaries?.length ? nextDiaries : get().diaries,
+            diaries: nextDiaries?.length ? nextDiaries : [],
+            students: nextStudents?.length ? nextStudents : [{ ...profile, id: profile.uid }],
             inviteCodes: nextInviteCodes?.length ? nextInviteCodes : get().inviteCodes,
           })
         })
@@ -142,7 +146,9 @@ export const useAppStore = create(
         if (canUseFirebase) {
           try {
             const profile = await signInCometail({ email: normalizedEmail, password })
-            set({ isAuthed: true, user: profile, authError: '' })
+            let nextStudents = []
+            try { nextStudents = await listUniverseStudentsRemote() } catch (error) { console.warn('Student preload failed', error) }
+            set({ isAuthed: true, user: profile, students: nextStudents?.length ? nextStudents : [{ ...profile, id: profile.uid }], authError: '' })
             toast.success('Cometail에 들어왔어요')
             return true
           } catch (error) {
@@ -171,7 +177,9 @@ export const useAppStore = create(
         if (canUseFirebase) {
           try {
             const profile = await signUpWithInvite({ email: normalizedEmail, password, inviteCode: normalized })
-            set({ isAuthed: true, user: profile, authError: '' })
+            let nextStudents = []
+            try { nextStudents = await listUniverseStudentsRemote() } catch (error) { console.warn('Student preload failed', error) }
+            set({ isAuthed: true, user: profile, students: nextStudents?.length ? nextStudents : [{ ...profile, id: profile.uid }], authError: '' })
             toast.success('초대코드 확인 완료')
             return true
           } catch (error) {

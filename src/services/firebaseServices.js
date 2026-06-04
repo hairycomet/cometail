@@ -282,6 +282,37 @@ export async function listInviteCodesRemote() {
     .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
 }
 
+
+export async function listUniverseStudentsRemote() {
+  if (!canUseFirebase) return []
+  const q = query(collection(db, firestoreCollections.users), limit(60))
+  const snap = await getDocs(q)
+  return snap.docs
+    .map(item => {
+      const data = item.data()
+      return {
+        id: data.uid || item.id,
+        uid: data.uid || item.id,
+        email: data.email || '',
+        nickname: data.nickname || 'Cometail Learner',
+        cometName: data.cometName || data.nickname || 'Comet',
+        level: Number(data.level || 1),
+        streak: Number(data.streak || 0),
+        points: Number(data.points || 0),
+        totalEarned: Number(data.totalEarned || data.points || 0),
+        themeColor: data.themeColor || 'purple',
+        equipped: data.equipped || [],
+        universeInvestment: Number(data.universeInvestment || 0),
+        planetInvestment: Number(data.planetInvestment || 0),
+        planetDecor: data.planetDecor || [],
+        planet: data.planet || null,
+        role: data.role || 'student',
+      }
+    })
+    .filter(item => item.role !== 'teacher')
+    .sort((a, b) => Number(b.level || 0) - Number(a.level || 0))
+}
+
 export async function createDiaryRemote({ user, diary }) {
   if (!canUseFirebase) return null
   const diaryRef = doc(collection(db, firestoreCollections.diaries))
