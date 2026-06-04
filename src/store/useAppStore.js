@@ -423,18 +423,21 @@ export const useAppStore = create(
       },
 
       completeTypingPractice: record => {
-        const reward = record?.completed ? 5 : 0
         set(state => {
+          const todayCount = (state.user.typingRecords || []).filter(item => item.completed && dayjs(item.createdAt).isSame(dayjs(), 'day')).length
+          const reward = record?.completed ? (todayCount + 1) * 5 : 0
           const newPoints = state.user.points + reward
           const totalEarned = (state.user.totalEarned || state.user.points) + reward
           const completedMissions = reward ? [...new Set([...(state.user.completedMissions || []), 'daily_typing'])] : state.user.completedMissions
-          const typingRecord = { id: crypto.randomUUID(), createdAt: dayjs().toISOString(), ...record }
+          const typingRecord = { id: crypto.randomUUID(), createdAt: dayjs().toISOString(), reward, ...record }
           return {
             typingRecords: [typingRecord, ...(state.typingRecords || [])],
             user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedMissions, typingRecords: [typingRecord, ...(state.user.typingRecords || [])] },
           }
         })
-        if (reward) toast.success('+5 Starlight')
+        const updatedUser = get().user
+        const latest = updatedUser.typingRecords?.[0]
+        if (latest?.reward) toast.success(`+${latest.reward} Starlight for typing`)
       },
       reviewExpression: expression => {
         if (!expression) return

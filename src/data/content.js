@@ -69,14 +69,14 @@ export const universeMilestones = [
 ]
 
 export const themePalettes = [
-  { id: 'purple', name: 'Comet Purple', primary: '#7c3aed', accent: '#f97316', bg1: '#ede9fe', bg2: '#fed7aa', emoji: '💜', vibe: '보라색 우주와 주황 별빛' },
-  { id: 'mint', name: 'Mint Classroom', primary: '#0f766e', accent: '#14b8a6', bg1: '#ccfbf1', bg2: '#ecfeff', emoji: '🌿', vibe: '깔끔한 민트 공부방' },
-  { id: 'sky', name: 'Sky Planet', primary: '#2563eb', accent: '#38bdf8', bg1: '#dbeafe', bg2: '#e0f2fe', emoji: '🌤️', vibe: '밝은 하늘색 행성' },
-  { id: 'rose', name: 'Rose Galaxy', primary: '#db2777', accent: '#fb7185', bg1: '#fce7f3', bg2: '#ffe4e6', emoji: '🌹', vibe: '핑크빛 은하' },
-  { id: 'peach', name: 'Peach Diary', primary: '#ea580c', accent: '#fb923c', bg1: '#ffedd5', bg2: '#fef3c7', emoji: '🍑', vibe: '따뜻한 일기장' },
-  { id: 'forest', name: 'Forest Orbit', primary: '#15803d', accent: '#22c55e', bg1: '#dcfce7', bg2: '#f0fdf4', emoji: '🌲', vibe: '초록 행성과 자연' },
-  { id: 'navy', name: 'Midnight Study', primary: '#1e3a8a', accent: '#818cf8', bg1: '#172554', bg2: '#312e81', emoji: '🌙', vibe: '밤 공부와 깊은 우주' },
-  { id: 'cream', name: 'London Beige', primary: '#92400e', accent: '#f59e0b', bg1: '#fef3c7', bg2: '#fffbeb', emoji: '☕', vibe: '차분한 베이지 감성' },
+  { id: 'purple', name: 'Comet Purple', primary: '#7c3aed', accent: '#f97316', bg1: '#ede9fe', bg2: '#fed7aa', emoji: '💜', vibe: '보라 우주와 따뜻한 별빛' },
+  { id: 'mint', name: 'Mint Classroom', primary: '#0f766e', accent: '#14b8a6', bg1: '#ccfbf1', bg2: '#ecfeff', emoji: '🌿', vibe: '차분한 민트 공부방' },
+  { id: 'sky', name: 'Sky Planet', primary: '#2563eb', accent: '#38bdf8', bg1: '#dbeafe', bg2: '#e0f2fe', emoji: '🌤️', vibe: '밝고 시원한 하늘빛' },
+  { id: 'rose', name: 'Rose Galaxy', primary: '#db2777', accent: '#fb7185', bg1: '#fce7f3', bg2: '#ffe4e6', emoji: '🌹', vibe: '부드러운 로즈 은하' },
+  { id: 'peach', name: 'Peach Diary', primary: '#ea580c', accent: '#fb923c', bg1: '#ffedd5', bg2: '#fef3c7', emoji: '🍑', vibe: '따뜻한 복숭아 일기장' },
+  { id: 'forest', name: 'Forest Orbit', primary: '#15803d', accent: '#22c55e', bg1: '#dcfce7', bg2: '#f0fdf4', emoji: '🌲', vibe: '싱그러운 초록 행성' },
+  { id: 'navy', name: 'Midnight Study', primary: '#1e3a8a', accent: '#818cf8', bg1: '#172554', bg2: '#312e81', emoji: '🌙', vibe: '깊고 차분한 밤 우주' },
+  { id: 'cream', name: 'London Beige', primary: '#92400e', accent: '#f59e0b', bg1: '#fef3c7', bg2: '#fffbeb', emoji: '☕', vibe: '차분한 런던 베이지' },
 ]
 
 export const diaryPrompts = [

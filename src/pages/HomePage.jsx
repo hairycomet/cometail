@@ -11,7 +11,12 @@ export default function HomePage() {
   const lang = getLanguage()
   const openHomework = homework.filter(item => item.status === 'open')
   const weeklyCount = getWeeklyCount(diaries)
-  const progress = Math.min(100, (user.totalEarned || user.points) % 100)
+  const totalEarned = user.totalEarned || user.points || 0
+  const levelStart = Math.max(0, (user.level - 1) * 100)
+  const nextLevelAt = user.level * 100
+  const xpInLevel = Math.max(0, totalEarned - levelStart)
+  const xpNeeded = Math.max(0, nextLevelAt - totalEarned)
+  const progress = Math.min(100, Math.round((xpInLevel / 100) * 100))
   const ranking = [...new Set([user.nickname, 'TOEFL Star', 'IELTS Learner', 'Young Writer'])]
   const canEnterUniverse = user.level >= 5
   const canLaunch = user.level >= 10
@@ -40,6 +45,10 @@ export default function HomePage() {
           <div className="v9-stage-orbit" />
           <CometAvatar equipped={user.equipped} level={user.level} />
           <div className="v9-avatar-caption"><strong>{user.cometName}</strong><span>{user.points} Starlight</span></div>
+          <div className="v93-level-badge">
+            <span>Level {user.level}</span>
+            <strong>{xpInLevel}/100 XP</strong>
+          </div>
         </div>
       </section>
 
@@ -54,7 +63,7 @@ export default function HomePage() {
 
       <div className="stats-row v9-stats-row">
         <StatCard label="Current streak" value={`${user.streak} days`} hint={`Best ${user.longestStreak} days`} icon={<IconFlame />} />
-        <StatCard label="Starlight" value={user.points} hint={`${user.totalEarned || user.points} earned`} icon={<IconSparkles />} />
+        <StatCard label="Starlight" value={user.points} hint={`${totalEarned} earned`} icon={<IconSparkles />} />
         <StatCard label="Open tasks" value={openHomework.length} hint="Teacher assignments" icon={<IconShieldCheck />} />
       </div>
 
@@ -105,9 +114,13 @@ export default function HomePage() {
       </section>
 
       <section className="panel v9-level-panel">
-        <div className="panel-title"><h2>Comet tail progress</h2><span>{progress}/100</span></div>
+        <div className="panel-title"><h2>Level progress</h2><span>Level {user.level}</span></div>
+        <div className="v93-level-summary">
+          <strong>{xpInLevel}/100 XP</strong>
+          <span>다음 레벨까지 {xpNeeded} XP</span>
+        </div>
         <div className="progress-track"><div style={{ width: `${progress}%` }} /></div>
-        <p className="muted">100 Starlight를 얻을 때마다 레벨이 올라가고 꼬리가 더 풍성해져요.</p>
+        <p className="muted">100 XP를 얻을 때마다 레벨이 올라가고, 커멧 꼬리가 더 길고 밝아져요.</p>
       </section>
 
       <section className="panel v9-ranking-panel">
