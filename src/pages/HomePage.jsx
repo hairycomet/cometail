@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { IconFlame, IconPencilPlus, IconTrophy, IconShieldCheck, IconGift, IconHanger, IconPlanet, IconSparkles, IconArrowRight, IconStarFilled, IconKeyboard, IconClipboardCheck, IconCalendarStar } from '@tabler/icons-react'
+import { IconCheck, IconFlame, IconPencilPlus, IconTrophy, IconShieldCheck, IconGift, IconHanger, IconPlanet, IconSparkles, IconArrowRight, IconStarFilled, IconKeyboard, IconClipboardCheck, IconCalendarStar } from '@tabler/icons-react'
 import CometAvatar from '../components/CometAvatar'
 import StatCard from '../components/StatCard'
 import Heatmap from '../components/Heatmap'
@@ -7,7 +7,7 @@ import { useAppStore } from '../store/useAppStore'
 import { getWeeklyCount } from '../utils/stats'
 
 export default function HomePage() {
-  const { user, diaries, homework, currentPrompt, missions, quests, completeMission, completeQuest, getLanguage } = useAppStore()
+  const { user, diaries, homework, currentPrompt, missions, quests, completeMission, completeQuest, getLanguage, claimStarterGift } = useAppStore()
   const lang = getLanguage()
   const openHomework = homework.filter(item => item.status === 'open')
   const weeklyCount = getWeeklyCount(diaries)
@@ -28,6 +28,18 @@ export default function HomePage() {
   const canLaunch = user.level >= 10
   const planetUnlocked = user.level >= 20
   const nextUnlock = !canEnterUniverse ? { level: 5, label: 'Cometail Universe 입장' } : !canLaunch ? { level: 10, label: '내 커멧을 공용 우주에 띄우기' } : !planetUnlocked ? { level: 20, label: '나만의 행성 만들기' } : { level: 30, label: '행성 꾸미기' }
+  const journey = user.firstJourney || {}
+  const firstDiaryDone = journey.firstDiary || diaries.length > 0
+  const firstTypingDone = journey.firstTyping || (user.typingRecords || []).some(record => record.completed)
+  const firstWardrobeDone = journey.firstWardrobe || (user.equipped || []).length > 0
+  const nextActions = [
+    { id: 'firstDiary', done: firstDiaryDone, title: '첫 문장 남기기', desc: '오늘 있었던 일을 영어로 한 문장만 써보세요.', to: '/diary/new', cta: '일기 쓰기' },
+    { id: 'firstGift', done: journey.firstGift, title: '첫 선물 받기', desc: '첫 기록을 남긴 뒤 꾸미기 아이템을 받아보세요.', action: claimStarterGift, disabled: !firstDiaryDone, cta: '선물 받기' },
+    { id: 'firstWardrobe', done: firstWardrobeDone, title: 'Comet Buddy 꾸미기', desc: '받은 아이템을 입혀보고 내 커멧을 확인해요.', to: '/wardrobe', cta: '꾸미기' },
+    { id: 'firstTyping', done: firstTypingDone, title: '타자 연습 1회', desc: '기본 문장을 타이핑하고 Starlight를 받아요.', to: '/typing', cta: '타자 연습' },
+    { id: 'firstNotebook', done: journey.firstNotebook || (user.savedPatterns || []).length > 0, title: '문장 보관함 보기', desc: '피드백과 표현이 쌓일 공간을 미리 확인해요.', to: '/notebook', cta: '보관함 보기' },
+  ]
+  const nextIncomplete = nextActions.find(item => !item.done) || nextActions[nextActions.length - 1]
 
   return (
     <div className="home-grid v9-home-grid">
@@ -89,6 +101,23 @@ export default function HomePage() {
           <p>Cometail은 완벽한 영어보다 매일 다시 돌아오는 힘을 더 크게 봐요. 작은 기록이 별빛이 되고, 별빛이 너의 우주를 넓혀요.</p>
         </div>
         <Link className="primary-button" to="/diary/new">첫 문장 남기기 <IconArrowRight size={18} /></Link>
+      </section>
+
+      <section className="panel wide v11-next-action-panel">
+        <div className="v11-next-main">
+          <p className="eyebrow">First Journey</p>
+          <h2>다음에는 이것만 해보세요</h2>
+          <p>{nextIncomplete.desc}</p>
+          {nextIncomplete.to ? <Link className="primary-button" to={nextIncomplete.to}>{nextIncomplete.cta} <IconArrowRight size={18} /></Link> : <button className="primary-button" disabled={nextIncomplete.disabled} onClick={nextIncomplete.action}>{nextIncomplete.cta} <IconGift size={18} /></button>}
+        </div>
+        <div className="v11-journey-steps">
+          {nextActions.map((item, index) => (
+            <div key={item.id} className={item.done ? 'done' : item.id === nextIncomplete.id ? 'current' : ''}>
+              <span>{item.done ? <IconCheck size={16} /> : index + 1}</span>
+              <strong>{item.title}</strong>
+            </div>
+          ))}
+        </div>
       </section>
 
       <div className="stats-row v9-stats-row">

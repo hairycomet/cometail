@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { IconArrowRight, IconKey, IconLock, IconMail, IconSparkles, IconTicket, IconUserPlus, IconShieldCheck } from '@tabler/icons-react'
+import { IconArrowRight, IconEye, IconEyeOff, IconKey, IconLock, IconMail, IconSparkles, IconTicket, IconUserPlus, IconShieldCheck } from '@tabler/icons-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../store/useAppStore'
 
@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -31,6 +33,14 @@ export default function LoginPage() {
     setLoading(true)
     try {
       if (mode === 'signup') {
+        if (password.length < 6) {
+          toast.error('비밀번호는 6자리 이상으로 입력해주세요')
+          return
+        }
+        if (password !== confirmPassword) {
+          toast.error('비밀번호 확인이 일치하지 않아요')
+          return
+        }
         if (!normalizedCode) {
           toast.error('참여코드를 입력해주세요')
           return
@@ -94,9 +104,13 @@ export default function LoginPage() {
           </div>
 
           <label className="v9-field"><span><IconMail size={18} /> 이메일</span><input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@example.com" autoComplete="email" /></label>
-          <label className="v9-field"><span><IconLock size={18} /> 비밀번호</span><input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="비밀번호를 입력하세요" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
+          <label className="v9-field password-field"><span><IconLock size={18} /> 비밀번호</span><input value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? 'text' : 'password'} placeholder="비밀번호를 입력하세요" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /><button type="button" className="password-eye" onClick={() => setShowPassword(value => !value)} aria-label="비밀번호 보기">{showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}</button></label>
           {mode === 'signup' && (
-            <label className="v9-field invite-field"><span><IconTicket size={18} /> 참여코드</span><input value={code} onChange={e => setCode(e.target.value)} placeholder="선생님에게 받은 참여코드" autoComplete="off" /></label>
+            <>
+              <label className="v9-field password-field"><span><IconLock size={18} /> 비밀번호 확인</span><input value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} type={showPassword ? 'text' : 'password'} placeholder="한 번 더 입력해주세요" autoComplete="new-password" /></label>
+              <label className="v9-field invite-field"><span><IconTicket size={18} /> 참여코드</span><input value={code} onChange={e => setCode(e.target.value)} placeholder="선생님에게 받은 참여코드" autoComplete="off" /></label>
+              <div className="signup-name-note"><strong>가입 후 이름을 정해요</strong><span>닉네임은 다른 학생들에게 보이는 내 이름이고, Comet Buddy 이름은 내가 키우는 캐릭터의 이름이에요. 둘 다 나중에 프로필에서 바꿀 수 있어요.</span></div>
+            </>
           )}
 
           <button className="primary-button v9-auth-submit" type="submit" disabled={loading}>

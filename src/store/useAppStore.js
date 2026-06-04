@@ -33,8 +33,16 @@ const calcLevel = points => Math.max(1, Math.floor(points / 100) + 1)
 const wearableTypes = ['Hat', 'Face', 'Outfit', 'Tail', 'Hand', 'Background', 'Badge', 'Pet', 'Aura', 'Frame']
 const planetDecorTypes = ['Planet', 'Room']
 const randomItem = (owned, level = 1) => {
-  const pool = shopItems.filter(item => wearableTypes.includes(item.type) && !owned.includes(item.id) && Number(level || 1) >= Number(item.minLevel || 1))
-  return pool[Math.floor(Math.random() * Math.max(1, pool.length))]
+  const pool = shopItems.filter(item => [...wearableTypes, ...planetDecorTypes].includes(item.type) && !owned.includes(item.id) && Number(level || 1) >= Number(item.minLevel || 1))
+  if (!pool.length) return null
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+const getLevelProgress = user => {
+  const totalEarned = Number(user.totalEarned || user.points || 0)
+  const level = calcLevel(totalEarned)
+  const levelStart = Math.max(0, (level - 1) * 100)
+  const xpInLevel = Math.max(0, totalEarned - levelStart)
+  return { totalEarned, level, xpInLevel, xpNeeded: Math.max(0, 100 - xpInLevel), progress: Math.min(100, Math.round((xpInLevel / 100) * 100)) }
 }
 const effectiveLanguage = user => user.level >= 20 ? 'en' : user.appLanguage || 'ko'
 const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || 'hairycomet@gmail.com')
@@ -226,6 +234,9 @@ export const useAppStore = create(
             inviteCode: normalized,
             role: 'student',
             isAdmin: false,
+            firstJourney: { firstDiary: false, firstGift: false, firstWardrobe: false, firstTyping: false, firstNotebook: false },
+            savedPatterns: [],
+            diaryDraft: null,
             createdAt: dayjs().toISOString(),
           },
         }))
@@ -279,6 +290,10 @@ export const useAppStore = create(
         const index = diaryPrompts.indexOf(current)
         set({ currentPrompt: diaryPrompts[(index + 1) % diaryPrompts.length] })
       },
+      setDiaryDraft: draft => {
+        set(state => ({ user: { ...state.user, diaryDraft: draft ? { ...draft, updatedAt: dayjs().toISOString() } : null } }))
+        void persistUserRemote(get)
+      },
       addPoints: points => {
         set(state => {
           const next = state.user.points + points
@@ -303,9 +318,10 @@ export const useAppStore = create(
           const newPoints = state.user.points + 10
           const totalEarned = (state.user.totalEarned || state.user.points) + 10
           const completedMissions = [...new Set([...(state.user.completedMissions || []), 'daily_diary'])]
+          const firstJourney = { ...(state.user.firstJourney || {}), firstDiary: true }
           return {
             diaries: [savedEntry, ...state.diaries],
-            user: { ...state.user, completedMissions, points: newPoints, totalEarned, level: calcLevel(totalEarned), streak: state.user.streak + 1, longestStreak: Math.max(state.user.longestStreak, state.user.streak + 1) },
+            user: { ...state.user, completedMissions, firstJourney, diaryDraft: null, points: newPoints, totalEarned, level: calcLevel(totalEarned), streak: state.user.streak + 1, longestStreak: Math.max(state.user.longestStreak, state.user.streak + 1) },
           }
         })
         void persistUserRemote(get)
@@ -358,9 +374,16 @@ export const useAppStore = create(
         if (user.points < item.price) { toast.error('별빛이 부족해요'); return }
         if (item.type === 'Gift Box') {
           const prize = randomItem(user.owned || [], user.level)
-          set(state => ({ user: { ...state.user, points: state.user.points - item.price, owned: [...new Set([...(state.user.owned || []), prize?.id].filter(Boolean))] } }))
+          if (!prize) {
+            const refund = Math.max(30, Math.round(item.price * 0.6))
+            set(state => ({ user: { ...state.user, points: state.user.points - item.price + refund } }))
+            void persistUserRemote(get)
+            toast(`지금 받을 수 있는 새 아이템을 모두 모았어요. ${refund} Starlight를 돌려드렸어요.`)
+            return
+          }
+          set(state => ({ user: { ...state.user, points: state.user.points - item.price, owned: [...new Set([...(state.user.owned || []), prize.id])], lastBoxPrize: prize.id } }))
           void persistUserRemote(get)
-          toast.success(`${prize?.name || '아이템'}이 나왔어요`)
+          toast.success(`${prize.emoji} ${prize.name} (${prize.rarity})이 나왔어요!`)
           return
         }
         set(state => ({ user: { ...state.user, points: state.user.points - item.price, owned: [...new Set([...(state.user.owned || []), itemId])] } }))
@@ -373,7 +396,7 @@ export const useAppStore = create(
         set(state => {
           const sameTypeIds = shopItems.filter(product => product.type === item.type).map(product => product.id)
           const kept = (state.user.equipped || []).filter(id => !sameTypeIds.includes(id))
-          return { user: { ...state.user, equipped: [...kept, itemId] } }
+          return { user: { ...state.user, equipped: [...kept, itemId], firstJourney: { ...(state.user.firstJourney || {}), firstWardrobe: true } } }
         })
         void persistUserRemote(get)
         toast.success('장착했어요')
@@ -452,10 +475,30 @@ export const useAppStore = create(
         void persistUserRemote(get)
         toast.success('표현 보관함에 저장했어요')
       },
+      savePattern: patternData => {
+        const pattern = typeof patternData === 'string' ? { pattern: patternData } : patternData
+        if (!pattern?.pattern?.trim()) return
+        set(state => {
+          const existing = state.user.savedPatterns || []
+          const item = { id: pattern.id || crypto.randomUUID(), meaning: pattern.meaning || '', example: pattern.example || '', visibility: pattern.visibility || 'public', createdAt: dayjs().toISOString(), ...pattern, pattern: pattern.pattern.trim() }
+          const next = existing.some(saved => saved.pattern === item.pattern) ? existing : [item, ...existing]
+          return { user: { ...state.user, savedPatterns: next } }
+        })
+        void persistUserRemote(get)
+        toast.success('문장 패턴을 보관함에 저장했어요')
+      },
       addFeedback: (diaryId, feedbackData) => {
         set(state => ({ diaries: state.diaries.map(diary => diary.id === diaryId ? { ...diary, ...feedbackData, feedback: feedbackData.feedback || diary.feedback } : diary) }))
         if (feedbackData.expression) get().saveExpression(feedbackData.expression)
         toast.success('피드백 저장 완료')
+      },
+      claimStarterGift: () => {
+        const user = get().user
+        if (user.firstJourney?.firstGift) { toast('이미 첫 선물을 받았어요'); return }
+        const starterItems = ['violet_ribbon', 'pencil_wand', 'sparkle_cheeks'].filter(id => shopItems.some(item => item.id === id))
+        set(state => ({ user: { ...state.user, firstJourney: { ...(state.user.firstJourney || {}), firstGift: true }, owned: [...new Set([...(state.user.owned || []), ...starterItems])], points: state.user.points + 20, totalEarned: (state.user.totalEarned || state.user.points) + 20, level: calcLevel((state.user.totalEarned || state.user.points) + 20) } }))
+        void persistUserRemote(get)
+        toast.success('첫 선물과 +20 Starlight를 받았어요')
       },
       teacherGift: ({ itemId, points = 0 }) => {
         set(state => {
@@ -483,7 +526,7 @@ export const useAppStore = create(
           const typingRecord = { id: crypto.randomUUID(), createdAt: dayjs().toISOString(), reward, ...record }
           return {
             typingRecords: [typingRecord, ...(state.typingRecords || [])],
-            user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedMissions, typingRecords: [typingRecord, ...(state.user.typingRecords || [])] },
+            user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedMissions, typingRecords: [typingRecord, ...(state.user.typingRecords || [])], firstJourney: { ...(state.user.firstJourney || {}), firstTyping: record?.completed || state.user.firstJourney?.firstTyping } },
           }
         })
         const updatedUser = get().user

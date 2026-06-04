@@ -80,11 +80,11 @@ export default function OnboardingPage() {
               <h1>이제 너의 Comet Buddy를 깨워요</h1>
               <p>처음에는 한국어 도움을 받을 수 있어요. 레벨이 오르면 Cometail은 자연스럽게 영어 중심의 우주로 전환됩니다.</p>
             </div>
-            <label>닉네임<input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="앱에서 사용할 이름" /></label>
-            <label>Comet Buddy 이름<input value={cometName} onChange={e => setCometName(e.target.value)} placeholder="예: Lumi, Nova, Aster" /></label>
+            <label>닉네임<span className="field-help">다른 학생들에게 보이는 내 이름이에요. 나중에 프로필에서 바꿀 수 있어요.</span><input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="앱에서 사용할 이름" /></label>
+            <label>Comet Buddy 이름<span className="field-help">내가 키우게 될 캐릭터의 이름이에요. 닉네임과 같아도 되고 달라도 괜찮아요.</span><input value={cometName} onChange={e => setCometName(e.target.value)} placeholder="예: Lumi, Nova, Aster" /></label>
             <label>앱 언어<select value={appLanguage} onChange={e => setAppLanguage(e.target.value)}><option value="ko">한국어 도움 받기</option><option value="en">English only</option></select></label>
             <label>목표 타입<select value={goalType} onChange={e => setGoalType(e.target.value)}>{goalTypes.map(type => <option key={type}>{type}</option>)}</select></label>
-            <label>이번 달 영어 목표<textarea value={goal} onChange={e => setGoal(e.target.value)} rows="3" placeholder="예: 매일 영어 일기 3문장 쓰기" /></label>
+            <label>이번 달 영어 목표<span className="field-help">이번 달에 Cometail로 가장 먼저 이루고 싶은 작은 목표를 적어주세요.</span><textarea value={goal} onChange={e => setGoal(e.target.value)} rows="3" placeholder="예: 매일 영어 일기 3문장 쓰기" /></label>
             <div className="mini-palette-row v9-palette-row">
               {themePalettes.slice(0, 6).map(theme => <button type="button" key={theme.id} className={themeColor === theme.id ? 'active' : ''} onClick={() => setThemeColor(theme.id)}>{theme.emoji} {theme.name}</button>)}
             </div>

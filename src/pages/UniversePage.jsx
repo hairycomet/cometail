@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   IconArrowRight,
   IconDice5,
@@ -71,7 +71,7 @@ function StudentNode({ student, mine, slot, onSelect }) {
   )
 }
 
-function VisitorPanel({ student, user, onClose, onCheer }) {
+function VisitorPanel({ student, user, onClose, onCheer, onSavePattern }) {
   if (!student) return null
   const stage = getLevelStage(student.level)
   const next = getNextLevelStage(student.level)
@@ -99,6 +99,7 @@ function VisitorPanel({ student, user, onClose, onCheer }) {
           <p>{stage.visual}</p>
           {next ? <small>다음 큰 변화: Level {next.level} · {next.unlock}</small> : <small>최고 단계의 Legendary Comet이에요.</small>}
         </div>
+        {!mine && <div className="visitor-public-patterns"><strong>공개 문장 패턴</strong><p>일기 내용은 비공개여도, 친구가 공개한 문장 패턴은 저장해서 배울 수 있어요.</p>{(student.savedPatterns || []).filter(pattern => pattern.visibility !== 'private').slice(0, 4).map(pattern => <button key={pattern.id || pattern.pattern} onClick={() => onSavePattern(pattern)}><span>{pattern.pattern}</span><em>{pattern.meaning || pattern.example}</em></button>)}{!(student.savedPatterns || []).length && <small>아직 공개한 문장 패턴이 없어요.</small>}</div>}
         {!mine && <div className="reaction-row visitor-reactions">{universeReactions.map(reaction => <button key={reaction.id} onClick={() => onCheer(student.uid || student.id, reaction.id)}>{reaction.emoji}<span>{reaction.labelKo}</span></button>)}</div>}
         {mine && <div className="visitor-actions"><Link className="primary-button" to="/wardrobe">내 커멧 꾸미기</Link><Link className="secondary-button" to="/shop">행성 장식 사러가기</Link></div>}
       </aside>
@@ -107,9 +108,11 @@ function VisitorPanel({ student, user, onClose, onCheer }) {
 }
 
 export default function UniversePage() {
-  const { user, students, isFirebaseMode, investUniverse, investPlanet, cheerStudent, decoratePlanet, removePlanetDecor } = useAppStore()
+  const { user, students, isFirebaseMode, investUniverse, investPlanet, cheerStudent, decoratePlanet, removePlanetDecor, savePattern } = useAppStore()
   const [amount, setAmount] = useState(100)
   const [selectedStudent, setSelectedStudent] = useState(null)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const dragRef = useRef(null)
   const canVisit = user.level >= 5
   const canLaunch = user.level >= 10
   const canPlanet = user.level >= 20
@@ -137,20 +140,33 @@ export default function UniversePage() {
     const choice = pool[Math.floor(Math.random() * pool.length)]
     setSelectedStudent(choice)
   }
+  const startDrag = event => {
+    if (event.target.closest('.universe-node, button, a, input')) return
+    dragRef.current = { startX: event.clientX, startY: event.clientY, x: pan.x, y: pan.y }
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+  }
+  const moveDrag = event => {
+    if (!dragRef.current) return
+    const nextX = dragRef.current.x + event.clientX - dragRef.current.startX
+    const nextY = dragRef.current.y + event.clientY - dragRef.current.startY
+    setPan({ x: Math.max(-180, Math.min(180, nextX)), y: Math.max(-120, Math.min(120, nextY)) })
+  }
+  const endDrag = () => { dragRef.current = null }
+  const resetMap = () => setPan({ x: 0, y: 0 })
 
   return (
     <div className="universe-page page-stack hybrid-universe-page">
       <div className="page-header universe-page-title">
         <div><p className="eyebrow">Cometail Universe</p><h1>모두가 빛나는 공유 우주 공간</h1><p>행성은 줄 세워진 카드가 아니라, 같은 우주 안에 자유롭게 떠 있어요. 친구의 행성을 눌러 구경하고, 랜덤 방문으로 새로운 커멧을 만나보세요.</p></div>
-        <div className="header-actions"><button className="secondary-button" onClick={randomVisit}><IconDice5 size={18} /> 랜덤 방문</button><div className="point-chip large"><IconSparkles size={18} /> {user.points} Starlight</div></div>
+        <div className="header-actions"><button className="secondary-button" onClick={randomVisit}><IconDice5 size={18} /> 랜덤 우주 여행</button><div className="point-chip large"><IconSparkles size={18} /> {user.points} Starlight</div></div>
       </div>
 
-      <section className={`shared-universe-map galaxy-size-${Math.min(6, universeSize)} planet-tier-${Math.min(9, planetTier)} ${!canVisit ? 'locked-preview' : ''}`}>
+      <section className={`shared-universe-map galaxy-size-${Math.min(6, universeSize)} planet-tier-${Math.min(9, planetTier)} ${!canVisit ? 'locked-preview' : ''}`} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
         <div className="space-grid-line" /><div className="space-nebula nebula-a" /><div className="space-nebula nebula-b" /><div className="space-core" />
-        <div className="map-topbar"><div><span className="universe-label"><IconStars size={18} /> Shared Galaxy · Size {universeSize}</span><small>{galaxyStudents.length}명의 커멧이 함께 빛나고 있어요</small></div><button className="ghost-button" onClick={randomVisit}><IconMap2 size={18} /> 우주 여행</button></div>
+        <div className="map-topbar"><div><span className="universe-label"><IconStars size={18} /> Shared Galaxy · Size {universeSize}</span><small>{galaxyStudents.length}명의 커멧이 함께 빛나고 있어요 · 빈 공간을 드래그해서 우주를 움직일 수 있어요</small></div><button className="ghost-button" onClick={resetMap}><IconMap2 size={18} /> 중심으로</button></div>
         {!canVisit && <div className="locked-overlay"><IconLock size={30} /><strong>Level 5부터 우주에 입장할 수 있어요.</strong><p>지금은 미리보기만 가능해요. 일기와 미션으로 별빛을 모아보세요.</p></div>}
         {canVisit && !canLaunch && <div className="floating-tip"><IconRocket size={18} /> Level 10부터 내 Comet을 공용 우주에 띄울 수 있어요.</div>}
-        <div className="free-planet-map">
+        <div className="free-planet-map" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
           {galaxyStudents.map((student, index) => <StudentNode key={student.uid || student.id || index} student={student} mine={(student.uid || student.id) === (user.uid || 'me')} slot={mapSlots[index]} onSelect={setSelectedStudent} />)}
         </div>
         {isFirebaseMode && realPeers.length === 0 && <div className="real-galaxy-note compact-note">아직 실제 가입한 학생이 거의 없어서 나의 행성이 중심에 보여요. 학생들이 들어오면 이곳에 실제 행성이 하나씩 떠오릅니다.</div>}
@@ -191,7 +207,7 @@ export default function UniversePage() {
         {appliedDecor.length > 0 && <div className="applied-decor-row"><strong>적용 중</strong>{appliedDecor.map(item => <span key={item.id}>{item.emoji} {item.name}</span>)}</div>}
       </section>
 
-      <VisitorPanel student={selectedStudent} user={user} onClose={() => setSelectedStudent(null)} onCheer={cheerStudent} />
+      <VisitorPanel student={selectedStudent} user={user} onClose={() => setSelectedStudent(null)} onCheer={cheerStudent} onSavePattern={savePattern} />
     </div>
   )
 }
