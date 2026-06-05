@@ -408,6 +408,12 @@ export const useAppStore = create(
         })
         void persistUserRemote(get)
       },
+      setEquippedItems: equipped => {
+        const nextEquipped = Array.isArray(equipped) ? equipped.filter(Boolean) : []
+        set(state => ({ user: { ...state.user, equipped: nextEquipped, firstJourney: { ...(state.user.firstJourney || {}), firstWardrobe: true } } }))
+        void persistUserRemote(get)
+        toast.success('꾸미기를 저장했어요')
+      },
       resetEquipped: () => {
         set(state => ({ user: { ...state.user, equipped: [] } }))
         void persistUserRemote(get)
