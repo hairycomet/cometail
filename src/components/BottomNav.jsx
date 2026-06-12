@@ -1,23 +1,20 @@
 import { NavLink } from 'react-router-dom'
-import { IconHome2, IconPencilHeart, IconKeyboard, IconClipboardCheck, IconShoppingBag, IconUserCircle, IconPlanet, IconChartBar } from '@tabler/icons-react'
+import { IconHome2, IconPencilHeart, IconNotebook, IconPlanet, IconUserCircle } from '@tabler/icons-react'
 
 const links = [
   { to: '/', label: 'Home', icon: IconHome2 },
-  { to: '/diary', label: 'Diary', icon: IconPencilHeart },
-  { to: '/typing', label: 'Typing', icon: IconKeyboard },
-  { to: '/homework', label: 'Tasks', icon: IconClipboardCheck },
-  { to: '/universe', label: 'Universe', icon: IconPlanet, IconChartBar },
-  { to: '/shop', label: 'Shop', icon: IconShoppingBag },
-  { to: '/reports', label: 'Report', icon: IconChartBar },
-  { to: '/profile', label: 'Profile', icon: IconUserCircle },
+  { to: '/diary/new', label: 'Write', icon: IconPencilHeart },
+  { to: '/notebook', label: 'Notebook', icon: IconNotebook },
+  { to: '/universe', label: 'Universe', icon: IconPlanet },
+  { to: '/profile', label: 'My Comet', icon: IconUserCircle },
 ]
 
 export default function BottomNav() {
   return (
-    <nav className="bottom-nav eight">
+    <nav className="bottom-nav v14-bottom-nav">
       {links.map(({ to, label, icon: Icon }) => (
-        <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'active' : ''}>
-          <Icon size={20} stroke={2.2} />
+        <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'active' : ''} end={to === '/'}>
+          <Icon size={21} stroke={2.25} />
           <span>{label}</span>
         </NavLink>
       ))}

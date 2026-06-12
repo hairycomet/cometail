@@ -1,193 +1,110 @@
 import { Link } from 'react-router-dom'
-import { IconCheck, IconFlame, IconPencilPlus, IconTrophy, IconShieldCheck, IconGift, IconHanger, IconPlanet, IconSparkles, IconArrowRight, IconStarFilled, IconKeyboard, IconClipboardCheck, IconCalendarStar } from '@tabler/icons-react'
+import { IconArrowRight, IconBook2, IconFlame, IconMessageHeart, IconNotebook, IconPencilHeart, IconPlanet, IconSparkles, IconStarFilled } from '@tabler/icons-react'
 import CometAvatar from '../components/CometAvatar'
-import StatCard from '../components/StatCard'
 import Heatmap from '../components/Heatmap'
 import { useAppStore } from '../store/useAppStore'
 import { getWeeklyCount } from '../utils/stats'
 
 export default function HomePage() {
-  const { user, diaries, homework, currentPrompt, missions, quests, completeMission, completeQuest, getLanguage, claimStarterGift } = useAppStore()
-  const lang = getLanguage()
-  const openHomework = homework.filter(item => item.status === 'open')
-  const weeklyCount = getWeeklyCount(diaries)
-  const totalEarned = user.totalEarned || user.points || 0
+  const { user, diaries, currentPrompt } = useAppStore()
+  const totalEarned = Number(user.totalEarned || user.points || 0)
   const levelStart = Math.max(0, (user.level - 1) * 100)
-  const nextLevelAt = user.level * 100
   const xpInLevel = Math.max(0, totalEarned - levelStart)
-  const xpNeeded = Math.max(0, nextLevelAt - totalEarned)
+  const xpNeeded = Math.max(0, user.level * 100 - totalEarned)
   const progress = Math.min(100, Math.round((xpInLevel / 100) * 100))
-  const xpCards = [
-    { icon: <IconPencilPlus size={24} />, title: '일기 작성', value: '+10 XP', className: 'diary' },
-    { icon: <IconKeyboard size={24} />, title: '타자 연습 완료', value: '+5 XP부터', className: 'typing' },
-    { icon: <IconClipboardCheck size={24} />, title: '숙제 제출', value: '+15 XP', className: 'task' },
-    { icon: <IconCalendarStar size={24} />, title: '7일 스트릭 달성', value: '보너스 XP', className: 'streak' },
-  ]
-  const ranking = [...new Set([user.nickname, 'TOEFL Star', 'IELTS Learner', 'Young Writer'])]
-  const canEnterUniverse = user.level >= 5
-  const canLaunch = user.level >= 10
-  const planetUnlocked = user.level >= 20
-  const nextUnlock = !canEnterUniverse ? { level: 5, label: 'Cometail Universe 입장' } : !canLaunch ? { level: 10, label: '내 커멧을 공용 우주에 띄우기' } : !planetUnlocked ? { level: 20, label: '나만의 행성 만들기' } : { level: 30, label: '행성 꾸미기' }
-  const journey = user.firstJourney || {}
-  const firstDiaryDone = journey.firstDiary || diaries.length > 0
-  const firstTypingDone = journey.firstTyping || (user.typingRecords || []).some(record => record.completed)
-  const firstWardrobeDone = journey.firstWardrobe || (user.equipped || []).length > 0
-  const nextActions = [
-    { id: 'firstDiary', done: firstDiaryDone, title: '첫 문장 남기기', desc: '오늘 있었던 일을 영어로 한 문장만 써보세요.', to: '/diary/new', cta: '일기 쓰기' },
-    { id: 'firstGift', done: journey.firstGift, title: '첫 선물 받기', desc: '첫 기록을 남긴 뒤 꾸미기 아이템을 받아보세요.', action: claimStarterGift, disabled: !firstDiaryDone, cta: '선물 받기' },
-    { id: 'firstWardrobe', done: firstWardrobeDone, title: 'Comet Buddy 꾸미기', desc: '받은 아이템을 입혀보고 내 커멧을 확인해요.', to: '/wardrobe', cta: '꾸미기' },
-    { id: 'firstTyping', done: firstTypingDone, title: '타자 연습 1회', desc: '기본 문장을 타이핑하고 Starlight를 받아요.', to: '/typing', cta: '타자 연습' },
-    { id: 'firstNotebook', done: journey.firstNotebook || (user.savedPatterns || []).length > 0, title: '문장 보관함 보기', desc: '피드백과 표현이 쌓일 공간을 미리 확인해요.', to: '/notebook', cta: '보관함 보기' },
-  ]
-  const nextIncomplete = nextActions.find(item => !item.done) || nextActions[nextActions.length - 1]
+  const waitingFeedback = diaries.filter(diary => diary.status === 'waiting').length
+  const feedbackReady = diaries.filter(diary => diary.feedback || diary.corrected || diary.natural || diary.expression).length
+  const savedPatternCount = user.savedPatterns?.length || 0
+  const weeklyCount = getWeeklyCount(diaries)
+  const recentDiary = diaries[0]
 
   return (
-    <div className="home-grid v9-home-grid">
-      <section className="hero-card universe-hero-card v9-home-hero">
-        <div className="v9-hero-stars" aria-hidden="true" />
-        <div className="hero-copy v9-home-copy">
-          <p className="eyebrow">Level {user.level} · {user.streak} day streak</p>
-          <h1>{lang === 'ko' ? `${user.cometName}가 오늘의 별빛을 기다리고 있어요.` : `${user.cometName} is waiting for today’s starlight.`}</h1>
-          <p className="prompt-preview">오늘의 기록이 쌓일수록 커멧은 더 밝아지고, 우주는 더 넓어져요.</p>
-          <p className="v94-spark-prompt">Today’s spark: {currentPrompt}</p>
-          <div className="hero-actions v9-hero-actions">
-            <Link className="primary-button" to="/diary/new"><IconPencilPlus size={18} /> 오늘 일기 쓰기</Link>
-            <Link className="secondary-button" to="/wardrobe"><IconHanger size={18} /> 꾸미기</Link>
-            <Link className="secondary-button" to="/universe"><IconPlanet size={18} /> 우주 보기</Link>
-          </div>
+    <div className="v14-home">
+      <section className="v14-home-hero">
+        <div className="v14-home-stars" aria-hidden="true" />
+        <div className="v14-home-greeting">
+          <p className="eyebrow">Private English Universe</p>
+          <h1>오늘도 한 문장만<br />별빛으로 남겨볼까요?</h1>
+          <p>완벽하지 않아도 괜찮아요. 매일 조금씩 쓰고, 피드백을 받고, 나만의 영어 우주를 키워가요.</p>
+          <Link className="v14-main-cta" to="/diary/new">오늘 한 문장 남기기 <span>☄️</span></Link>
         </div>
-        <div className="v9-avatar-stage">
-          <div className="v9-stage-orbit" />
+        <div className="v14-comet-card">
           <CometAvatar equipped={user.equipped} level={user.level} />
-          <div className="v9-avatar-caption"><strong>{user.cometName}</strong><span>{user.points} Starlight</span></div>
-        </div>
-
-        <div className="v94-hero-xp">
-          <div className="v94-level-medal">
-            <span><IconStarFilled size={34} /></span>
-            <div>
-              <small>Level</small>
-              <strong>{user.level}</strong>
-            </div>
-          </div>
-          <div className="v94-xp-main">
-            <div className="v94-xp-head">
-              <strong>{xpInLevel} / 100 XP</strong>
-              <span>다음 레벨까지 {xpNeeded} XP</span>
-            </div>
-            <div className="v94-xp-track" aria-label={`Level progress ${progress}%`}>
-              <div style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="v94-xp-earn">
-          <p><IconSparkles size={18} /> XP는 이렇게 쌓여요!</p>
           <div>
-            {xpCards.map(card => (
-              <article className={`v94-xp-card ${card.className}`} key={card.title}>
-                <span>{card.icon}</span>
-                <div><strong>{card.title}</strong><em>{card.value}</em></div>
-              </article>
-            ))}
+            <strong>{user.cometName}</strong>
+            <span>Lv. {user.level} · {user.points} Starlight</span>
           </div>
         </div>
       </section>
 
-      <section className="v9-quick-lift panel wide">
-        <div className="v9-lift-copy">
-          <p className="eyebrow">Today’s route</p>
-          <h2>오늘은 한 문장만 남겨도 충분해요.</h2>
-          <p>Cometail은 완벽한 영어보다 매일 다시 돌아오는 힘을 더 크게 봐요. 작은 기록이 별빛이 되고, 별빛이 너의 우주를 넓혀요.</p>
-        </div>
-        <Link className="primary-button" to="/diary/new">첫 문장 남기기 <IconArrowRight size={18} /></Link>
+      <section className="v14-stat-strip">
+        <article><IconFlame size={19} /><strong>{user.streak}</strong><span>연속 기록</span></article>
+        <article><IconSparkles size={19} /><strong>{user.points}</strong><span>별빛</span></article>
+        <article><IconStarFilled size={19} /><strong>Lv. {user.level}</strong><span>레벨</span></article>
       </section>
 
-      <section className="panel wide v11-next-action-panel">
-        <div className="v11-next-main">
-          <p className="eyebrow">First Journey</p>
-          <h2>다음에는 이것만 해보세요</h2>
-          <p>{nextIncomplete.desc}</p>
-          {nextIncomplete.to ? <Link className="primary-button" to={nextIncomplete.to}>{nextIncomplete.cta} <IconArrowRight size={18} /></Link> : <button className="primary-button" disabled={nextIncomplete.disabled} onClick={nextIncomplete.action}>{nextIncomplete.cta} <IconGift size={18} /></button>}
+      <section className="v14-level-card">
+        <div>
+          <p className="eyebrow">Growth</p>
+          <h2>다음 레벨까지 {xpNeeded} XP</h2>
         </div>
-        <div className="v11-journey-steps">
-          {nextActions.map((item, index) => (
-            <div key={item.id} className={item.done ? 'done' : item.id === nextIncomplete.id ? 'current' : ''}>
-              <span>{item.done ? <IconCheck size={16} /> : index + 1}</span>
-              <strong>{item.title}</strong>
+        <div className="v14-level-track"><div style={{ width: `${progress}%` }} /></div>
+        <p>{xpInLevel}/100 XP · 일기 하나가 오늘의 별빛이 돼요.</p>
+      </section>
+
+      <section className="v14-daily-card">
+        <div className="v14-card-title">
+          <IconPencilHeart size={22} />
+          <div><h2>오늘의 질문</h2><p>{currentPrompt}</p></div>
+        </div>
+        <Link className="secondary-button" to="/diary/new">이 질문으로 쓰기 <IconArrowRight size={17} /></Link>
+      </section>
+
+      <section className="v14-action-list">
+        <Link to="/diary" className="v14-action-row">
+          <span><IconBook2 size={22} /></span>
+          <div><strong>내 영어 기록</strong><small>{diaries.length ? `지금까지 ${diaries.length}개의 별빛을 남겼어요.` : '첫 영어 기록을 남겨보세요.'}</small></div>
+          <IconArrowRight size={18} />
+        </Link>
+        <Link to="/notebook" className="v14-action-row">
+          <span><IconNotebook size={22} /></span>
+          <div><strong>문장 보관함</strong><small>{savedPatternCount ? `${savedPatternCount}개의 표현이 쌓였어요.` : '피드백에서 배운 표현이 여기에 쌓여요.'}</small></div>
+          <IconArrowRight size={18} />
+        </Link>
+        <Link to="/universe" className="v14-action-row">
+          <span><IconPlanet size={22} /></span>
+          <div><strong>우주 산책</strong><small>초대받은 친구들의 행성과 공개 표현을 구경해요.</small></div>
+          <IconArrowRight size={18} />
+        </Link>
+      </section>
+
+      {(waitingFeedback > 0 || feedbackReady > 0) && (
+        <section className="v14-feedback-card">
+          <div className="v14-card-title">
+            <IconMessageHeart size={22} />
+            <div>
+              <h2>{feedbackReady ? '새 피드백이 도착했어요' : '피드백을 기다리고 있어요'}</h2>
+              <p>{feedbackReady ? '다듬어진 문장과 오늘의 표현을 확인해보세요.' : `${waitingFeedback}개의 기록이 별빛 피드백을 기다리고 있어요.`}</p>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+          <Link className="primary-button" to="/diary">피드백 보기</Link>
+        </section>
+      )}
 
-      <div className="stats-row v9-stats-row">
-        <StatCard label="Current streak" value={`${user.streak} days`} hint={`Best ${user.longestStreak} days`} icon={<IconFlame />} />
-        <StatCard label="Starlight" value={user.points} hint={`${totalEarned} earned`} icon={<IconSparkles />} />
-        <StatCard label="Open tasks" value={openHomework.length} hint="Teacher assignments" icon={<IconShieldCheck />} />
-      </div>
+      {recentDiary && (
+        <section className="v14-recent-card">
+          <p className="eyebrow">Recent Starlight</p>
+          <h2>{recentDiary.title}</h2>
+          <p>{recentDiary.content}</p>
+        </section>
+      )}
 
-      <section className="panel universe-status-panel v9-unlock-panel">
-        <div className="panel-title"><h2>Next Universe Unlock</h2><IconPlanet size={20} /></div>
-        <div className="v9-unlock-focus">
-          <strong>Level {nextUnlock.level}</strong>
-          <span>{nextUnlock.label}</span>
+      <section className="v14-trail-card">
+        <div className="v14-card-title">
+          <IconSparkles size={22} />
+          <div><h2>이번 주 별빛</h2><p>최근 35일 · 이번 주 {weeklyCount}회 기록</p></div>
         </div>
-        <div className="unlock-list">
-          <p className={canEnterUniverse ? 'unlocked' : 'locked'}><strong>Level 5</strong><span>우주 입장 {canEnterUniverse ? '가능' : '잠김'}</span></p>
-          <p className={canLaunch ? 'unlocked' : 'locked'}><strong>Level 10</strong><span>내 커멧 띄우기</span></p>
-          <p className={planetUnlocked ? 'unlocked' : 'locked'}><strong>Level 20</strong><span>내 행성 만들기</span></p>
-        </div>
-        <p className="muted">Starlight는 상점뿐 아니라 공용 우주와 내 행성에도 투자할 수 있어요.</p>
-      </section>
-
-      <section className="panel v9-mission-panel">
-        <div className="panel-title"><h2>Today’s missions</h2><span>{user.completedMissions?.length || 0}/{missions.length}</span></div>
-        <div className="mission-list">
-          {missions.map(mission => {
-            const done = user.completedMissions?.includes(mission.id)
-            return <button key={mission.id} className={`mission-row ${done ? 'done' : ''}`} onClick={() => completeMission(mission.id)} disabled={done}>
-              <span><strong>{lang === 'ko' ? mission.title : mission.titleEn}</strong><small>{mission.type}</small></span><em>{done ? 'Done' : `+${mission.reward} Starlight`}</em>
-            </button>
-          })}
-        </div>
-      </section>
-
-      <section className="panel v9-quest-panel">
-        <div className="panel-title"><h2>Weekly quests</h2><IconGift size={20} /></div>
-        <div className="quest-list">
-          {quests.map(quest => {
-            const done = user.completedQuests?.includes(quest.id)
-            const width = Math.min(100, Math.round((quest.progress / quest.goal) * 100))
-            return <div className="quest-card" key={quest.id}>
-              <div><strong>{quest.title}</strong><span>{quest.progress}/{quest.goal}</span></div>
-              <div className="progress-track"><div style={{ width: `${width}%` }} /></div>
-              <button className="secondary-button" disabled={done || quest.progress < quest.goal} onClick={() => completeQuest(quest.id)}>{done ? '완료' : `보상 ${quest.reward} Starlight`}</button>
-            </div>
-          })}
-        </div>
-      </section>
-
-      <section className="panel wide v9-trail-panel">
-        <div className="panel-title"><h2>Writing trail</h2><span>최근 35일 · 이번 주 {weeklyCount}회</span></div>
         <Heatmap diaries={diaries} />
-      </section>
-
-      <section className="panel v9-level-panel">
-        <div className="panel-title"><h2>Level progress</h2><span>Level {user.level}</span></div>
-        <div className="v93-level-summary">
-          <strong>{xpInLevel}/100 XP</strong>
-          <span>다음 레벨까지 {xpNeeded} XP</span>
-        </div>
-        <div className="progress-track"><div style={{ width: `${progress}%` }} /></div>
-        <p className="muted">100 XP를 얻을 때마다 레벨이 올라가고, 커멧 꼬리가 더 길고 밝아져요.</p>
-      </section>
-
-      <section className="panel v9-ranking-panel">
-        <div className="panel-title"><h2>Anonymous Ranking</h2><IconTrophy size={20} /></div>
-        <ol className="leaderboard">
-          {ranking.map((name, index) => <li key={name}><span>{index + 1}</span><strong>{index === 0 ? user.cometName : name}</strong><em>{690 - index * 86}✨</em></li>)}
-        </ol>
-        <p className="muted">랭킹은 일기 내용 없이 익명 캐릭터 중심으로만 보여줘요.</p>
       </section>
     </div>
   )
