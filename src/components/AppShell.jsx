@@ -1,33 +1,20 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { IconMoonStars, IconSun, IconShieldStar, IconSettings, IconUserCircle, IconSparkles } from '@tabler/icons-react'
+import { Outlet, Link } from 'react-router-dom'
+import { IconSparkles, IconMoonStars, IconSun } from '@tabler/icons-react'
 import BottomNav from './BottomNav'
 import { useAppStore } from '../store/useAppStore'
 
 export default function AppShell() {
   const { user, theme, toggleTheme } = useAppStore()
-  const location = useLocation()
-  const isAdminPage = location.pathname.startsWith('/admin')
-
   return (
-    <div className={`app v14-app ${theme} tone-${user.themeColor || 'purple'} mode-${user.displayMode || 'default'}`}>
-      <header className="topbar v14-topbar">
-        <Link to="/" className="brand">
-          <span className="brand-mark">☄️</span>
-          <span>Cometail</span>
-        </Link>
-        <div className="topbar-actions">
-          <Link className="teacher-pill" to="/profile"><IconUserCircle size={17} /> My Comet</Link>
-          {user.isAdmin && <Link className={`teacher-pill ${isAdminPage ? 'active' : ''}`} to="/admin"><IconShieldStar size={17} /> Admin</Link>}
-          <Link className="icon-button" to="/settings" aria-label="Settings"><IconSettings size={20} /></Link>
-          <button className="icon-button" onClick={toggleTheme} aria-label="Toggle theme">
-            {theme === 'light' ? <IconMoonStars size={20} /> : <IconSun size={20} />}
-          </button>
-          <div className="point-chip"><IconSparkles size={16} /> {user.points}</div>
+    <div className={`pair-app ${theme}`}>
+      <header className="pair-topbar">
+        <Link to="/" className="pair-brand"><span className="pair-logo">☄</span><span>Cometail</span></Link>
+        <div className="pair-top-actions">
+          <span className="light-pill"><IconSparkles size={15} /> {user.points || 0}</span>
+          <button className="round-icon" onClick={toggleTheme} aria-label="Toggle theme">{theme === 'dark' ? <IconSun size={18}/> : <IconMoonStars size={18}/>}</button>
         </div>
       </header>
-      <main className="screen v14-screen">
-        <Outlet />
-      </main>
+      <main className="pair-screen"><Outlet /></main>
       <BottomNav />
     </div>
   )

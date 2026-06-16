@@ -1,23 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { IconHome2, IconPencilHeart, IconNotebook, IconPlanet, IconUserCircle } from '@tabler/icons-react'
-
+import { IconHome2, IconBook2, IconHeartHandshake, IconPlanet, IconSparkles } from '@tabler/icons-react'
 const links = [
-  { to: '/', label: 'Home', icon: IconHome2 },
-  { to: '/diary/new', label: 'Write', icon: IconPencilHeart },
-  { to: '/notebook', label: 'Notebook', icon: IconNotebook },
-  { to: '/universe', label: 'Universe', icon: IconPlanet },
-  { to: '/profile', label: 'My Comet', icon: IconUserCircle },
+  { to:'/', label:'Home', icon:IconHome2 },
+  { to:'/diary', label:'Diary', icon:IconBook2 },
+  { to:'/mate', label:'Mate', icon:IconHeartHandshake },
+  { to:'/universe', label:'Our Universe', icon:IconPlanet },
+  { to:'/me', label:'My Comet', icon:IconSparkles },
 ]
-
-export default function BottomNav() {
-  return (
-    <nav className="bottom-nav v14-bottom-nav">
-      {links.map(({ to, label, icon: Icon }) => (
-        <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'active' : ''} end={to === '/'}>
-          <Icon size={21} stroke={2.25} />
-          <span>{label}</span>
-        </NavLink>
-      ))}
-    </nav>
-  )
+export default function BottomNav(){
+ return <nav className="pair-bottom-nav">{links.map(({to,label,icon:Icon})=><NavLink key={to} to={to} end={to==='/' } className={({isActive})=>isActive?'active':''}><Icon size={21}/><span>{label}</span></NavLink>)}</nav>
 }

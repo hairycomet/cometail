@@ -1,96 +1,57 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
+    function signedIn() { return request.auth != null; }
+    function myUser() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function isTeacher() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && myUser().data.role == 'teacher'; }
+    function isPairMember(pairId) {
+      return signedIn() && exists(/databases/$(database)/documents/pairs/$(pairId))
+        && request.auth.uid in get(/databases/$(database)/documents/pairs/$(pairId)).data.members;
     }
 
-    function myUserDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
-    function isTeacher() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && myUserDoc().data.role == 'teacher';
-    }
-
-    function isOwner(userId) {
-      return signedIn() && request.auth.uid == userId;
-    }
-
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isTeacher();
-      allow create: if signedIn() && request.auth.uid == userId;
-      allow update: if isOwner(userId) || isTeacher();
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isTeacher());
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && (request.auth.uid == uid || isTeacher());
       allow delete: if isTeacher();
     }
 
     match /inviteCodes/{code} {
-      // Sign-up needs to check a single code before a user document exists.
-      // Listing all invite codes is still teacher-only.
       allow get: if true;
-      allow list: if isTeacher();
-      allow create: if isTeacher() || (signedIn() && request.resource.data.createdBy == request.auth.uid && request.resource.data.maxUses == 1);
-      allow update: if isTeacher() || (
-        signedIn()
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['usedCount', 'lastUsedAt', 'lastUsedByEmail', 'lastUsedByUid'])
-        && request.resource.data.usedCount == resource.data.usedCount + 1
-        && request.resource.data.lastUsedByUid == request.auth.uid
-      );
+      allow list, create, delete: if isTeacher();
+      allow update: if signedIn();
+    }
+
+    match /pairs/{pairId} {
+      allow read: if isPairMember(pairId) || isTeacher();
+      allow create: if signedIn() && request.auth.uid in request.resource.data.members;
+      allow update: if isPairMember(pairId) || isTeacher();
       allow delete: if isTeacher();
     }
 
-    match /diaries/{diaryId} {
-      allow read: if isTeacher() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isTeacher() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow delete: if isTeacher() || (signedIn() && resource.data.userId == request.auth.uid);
-    }
-
-    match /feedbacks/{feedbackId} {
-      allow read: if isTeacher() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow create, update, delete: if isTeacher();
-    }
-
-    match /homeworks/{homeworkId} {
-      allow read: if signedIn();
-      allow create, update, delete: if isTeacher();
-    }
-
-    match /submissions/{submissionId} {
-      allow read: if isTeacher() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isTeacher() || (signedIn() && resource.data.userId == request.auth.uid);
+    match /pairEntries/{entryId} {
+      allow read: if isPairMember(resource.data.pairId) || isTeacher();
+      allow create: if signedIn() && isPairMember(request.resource.data.pairId);
+      allow update: if signedIn() && isPairMember(resource.data.pairId);
       allow delete: if isTeacher();
     }
 
-    match /typingRecords/{recordId} {
-      allow read: if isTeacher() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isTeacher();
-    }
-
-    match /planets/{planetId} {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isTeacher() || (signedIn() && resource.data.userId == request.auth.uid);
+    match /memories/{memoryId} {
+      allow read: if isPairMember(resource.data.pairId) || isTeacher();
+      allow create: if signedIn() && isPairMember(request.resource.data.pairId);
+      allow update: if signedIn() && isPairMember(resource.data.pairId);
       allow delete: if isTeacher();
     }
 
-    match /universe/{docId} {
-      allow read: if signedIn();
-      allow write: if isTeacher();
-    }
-
-    match /items/{itemId} {
-      allow read: if signedIn();
-      allow write: if isTeacher();
-    }
-
-    match /notifications/{notificationId} {
+    match /notifications/{id} {
       allow read, update: if signedIn() && resource.data.userId == request.auth.uid;
-      allow create, delete: if isTeacher();
+      allow create: if signedIn();
+      allow delete: if isTeacher();
+    }
+
+    match /reports/{id} {
+      allow create: if signedIn();
+      allow read, update, delete: if isTeacher();
     }
   }
 }

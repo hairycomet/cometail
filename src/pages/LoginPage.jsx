@@ -1,144 +1,34 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { IconEye, IconEyeOff, IconLock, IconMail, IconSparkles, IconTicket } from '@tabler/icons-react'
-import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
+import { IconEye, IconEyeOff, IconLock, IconMail, IconTicket } from '@tabler/icons-react'
 import { useAppStore } from '../store/useAppStore'
 
-const normalizeCode = value => value.trim().replace(/\s+/g, '').toUpperCase()
-
-export default function LoginPage() {
-  const navigate = useNavigate()
-  const { isAuthed, login, signup } = useAppStore()
-  const [mode, setMode] = useState('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [code, setCode] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  if (isAuthed) return <Navigate to="/" replace />
-
-  const handleSubmit = async event => {
-    event.preventDefault()
-    const trimmedEmail = email.trim().toLowerCase()
-    const normalizedCode = normalizeCode(code)
-
-    if (!trimmedEmail || !password) {
-      toast.error('이메일과 비밀번호를 입력해주세요')
-      return
-    }
-
-    setLoading(true)
-    try {
-      if (mode === 'signup') {
-        if (password.length < 6) {
-          toast.error('비밀번호는 6자리 이상으로 입력해주세요')
-          return
-        }
-        if (password !== confirmPassword) {
-          toast.error('비밀번호 확인이 일치하지 않아요')
-          return
-        }
-        if (!normalizedCode) {
-          toast.error('초대코드를 입력해주세요')
-          return
-        }
-        const ok = await signup({ email: trimmedEmail, password, inviteCode: normalizedCode })
-        if (!ok) return
-        navigate('/onboarding')
-        return
-      }
-
-      const ok = await login({ email: trimmedEmail, password })
-      if (ok) navigate('/')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const isSignup = mode === 'signup'
-
-  return (
-    <main className="v15-auth-page">
-      <section className="v15-login-shell" aria-label="Cometail login">
-        <div className="v15-stars" aria-hidden="true" />
-        <div className="v15-aurora" aria-hidden="true" />
-        <div className="v15-orbit" aria-hidden="true">
-          <span className="v15-comet-head" />
-        </div>
-        <div className="v15-horizon" aria-hidden="true" />
-        <div className="v15-buddy" aria-hidden="true">
-          <span className="ear left" />
-          <span className="ear right" />
-          <span className="body" />
-          <span className="cape" />
-          <span className="tail-star">✦</span>
-        </div>
-
-        <motion.header className="v15-brand" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .45 }}>
-          <span className="v15-brand-mark">☄️</span>
-          <strong>Cometail</strong>
-        </motion.header>
-
-        <motion.section className="v15-hero-copy" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .56, delay: .05 }}>
-          <h1>한 문장이<br /><em>별빛이 되는 곳</em></h1>
-          <p>매일 영어로 쓰고,<br />나만의 우주를 키워보세요.</p>
-        </motion.section>
-
-        <motion.section className="v15-auth-sheet" initial={{ opacity: 0, y: 34 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .58, delay: .08 }}>
-          <div className="v15-tabs" role="tablist" aria-label="로그인 또는 회원가입">
-            <button type="button" className={!isSignup ? 'selected' : ''} onClick={() => setMode('login')}>로그인</button>
-            <button type="button" className={isSignup ? 'selected' : ''} onClick={() => setMode('signup')}>회원가입</button>
-          </div>
-
-          <form className="v15-form" onSubmit={handleSubmit}>
-            <label className="v15-field">
-              <IconMail size={21} />
-              <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="이메일" autoComplete="email" />
-            </label>
-
-            <label className="v15-field password">
-              <IconLock size={21} />
-              <input value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? 'text' : 'password'} placeholder="비밀번호" autoComplete={isSignup ? 'new-password' : 'current-password'} />
-              <button type="button" onClick={() => setShowPassword(value => !value)} aria-label="비밀번호 보기">
-                {showPassword ? <IconEyeOff size={19} /> : <IconEye size={19} />}
-              </button>
-            </label>
-
-            {isSignup && (
-              <div className="v15-signup-fields">
-                <label className="v15-field">
-                  <IconLock size={21} />
-                  <input value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} type={showPassword ? 'text' : 'password'} placeholder="비밀번호 확인" autoComplete="new-password" />
-                </label>
-                <label className="v15-field invite">
-                  <IconTicket size={21} />
-                  <input value={code} onChange={e => setCode(e.target.value)} placeholder="초대 코드" autoComplete="off" />
-                </label>
-                <p className="v15-signup-note">닉네임과 Comet Buddy 이름은 입장 후에 정해요.</p>
-              </div>
-            )}
-
-            {!isSignup && (
-              <div className="v15-options">
-                <label><input type="checkbox" /> 로그인 상태 유지</label>
-                <button type="button" onClick={() => toast('비밀번호 재설정 기능은 곧 연결할 예정이에요')}>비밀번호 찾기</button>
-              </div>
-            )}
-
-            <button className="v15-submit" type="submit" disabled={loading}>
-              {loading ? '별빛 확인 중...' : '내 우주로 들어가기'} <span>☄️</span>
-            </button>
-
-            <div className="v15-private-note">
-              <IconSparkles size={20} />
-              <p>Cometail은 초대 기반 베타 우주예요.<br />초대를 받은 분만 먼저 입장할 수 있어요.</p>
-            </div>
-          </form>
-        </motion.section>
-      </section>
-    </main>
-  )
+export default function LoginPage(){
+ const [mode,setMode]=useState('login'); const [show,setShow]=useState(false); const [form,setForm]=useState({email:'',password:'',confirm:'',inviteCode:''}); const [busy,setBusy]=useState(false)
+ const {login,signup}=useAppStore(); const nav=useNavigate();
+ const update=(k,v)=>setForm(s=>({...s,[k]:v}))
+ const submit=async e=>{e.preventDefault(); if(mode==='signup'&&form.password!==form.confirm)return; setBusy(true); const ok=mode==='login'?await login(form):await signup(form); setBusy(false); if(ok)nav('/')}
+ return <main className="auth-v16">
+   <div className="auth-stars"/><div className="auth-orbit orbit-one"/><div className="auth-orbit orbit-two"/>
+   <section className="auth-story">
+     <div className="auth-wordmark"><span>☄</span> Cometail</div>
+     <div className="auth-copy">
+       <p className="eyebrow">INVITE-ONLY ENGLISH DIARY</p>
+       <h1>둘이 써야<br/><em>열리는 오늘의 이야기</em></h1>
+       <p>친구 또는 아직 모르는 누군가와 하루 한 문장씩.<br/>각자의 Comet을 키우고, 둘만의 우주를 함께 만들어요.</p>
+       <div className="signal-preview"><span className="signal-dot mine">나</span><i/><span className="signal-dot mate">Mate</span><small>두 별빛이 도착하면 이야기가 열려요</small></div>
+     </div>
+   </section>
+   <section className="auth-sheet">
+    <div className="auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>setMode('login')}>로그인</button><button className={mode==='signup'?'active':''} onClick={()=>setMode('signup')}>회원가입</button></div>
+    <div className="auth-heading"><h2>{mode==='login'?'다시 만나서 반가워요':'작은 우주에 초대받았어요'}</h2><p>{mode==='login'?'오늘의 별빛이 기다리고 있어요.':'초대코드를 확인하고 첫 신호를 보내보세요.'}</p></div>
+    <form onSubmit={submit} className="auth-form-v16">
+      <label><span><IconMail size={17}/> 이메일</span><input type="email" required value={form.email} onChange={e=>update('email',e.target.value)} placeholder="you@example.com"/></label>
+      <label><span><IconLock size={17}/> 비밀번호</span><div className="password-wrap"><input type={show?'text':'password'} required minLength={6} value={form.password} onChange={e=>update('password',e.target.value)} placeholder="6자 이상"/><button type="button" onClick={()=>setShow(v=>!v)}>{show?<IconEyeOff size={18}/>:<IconEye size={18}/>}</button></div></label>
+      {mode==='signup'&&<><label><span><IconLock size={17}/> 비밀번호 확인</span><input type={show?'text':'password'} required value={form.confirm} onChange={e=>update('confirm',e.target.value)} placeholder="한 번 더 입력"/></label><label><span><IconTicket size={17}/> 초대코드</span><input required value={form.inviteCode} onChange={e=>update('inviteCode',e.target.value)} placeholder="COMET-XXXX"/></label>{form.confirm&&form.password!==form.confirm&&<p className="form-error">비밀번호가 일치하지 않아요.</p>}</>}
+      <button className="auth-submit" disabled={busy|| (mode==='signup'&&form.password!==form.confirm)}>{busy?'별빛 확인 중...':mode==='login'?'내 우주로 들어가기':'초대받은 우주 시작하기'}</button>
+    </form>
+    <p className="auth-private">Cometail은 초대받은 사람만 입장하는 프라이빗 베타예요.</p>
+   </section>
+ </main>
 }

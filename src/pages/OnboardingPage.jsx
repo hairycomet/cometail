@@ -1,97 +1,19 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { IconChevronRight, IconSparkles } from '@tabler/icons-react'
-import CometAvatar from '../components/CometAvatar'
-import { goalTypes, storySlides, themePalettes } from '../data/content'
+import { useNavigate } from 'react-router-dom'
+import { IconArrowRight, IconFriends, IconSparkles, IconUserHeart, IconUser } from '@tabler/icons-react'
 import { useAppStore } from '../store/useAppStore'
 
-export default function OnboardingPage() {
-  const navigate = useNavigate()
-  const { isAuthed, user, completeOnboarding } = useAppStore()
-  const [step, setStep] = useState(0)
-  const [nickname, setNickname] = useState(user.nickname || '')
-  const [cometName, setCometName] = useState(user.cometName || 'Lumi')
-  const [goal, setGoal] = useState(user.goal || '')
-  const [goalType, setGoalType] = useState(user.goalType || 'English Diary')
-  const [appLanguage, setAppLanguage] = useState(user.appLanguage || 'ko')
-  const [themeColor, setThemeColor] = useState(user.themeColor || 'purple')
-  const [saving, setSaving] = useState(false)
-  const slide = storySlides[step]
-  const isStory = step < storySlides.length
-
-  if (!isAuthed) return <Navigate to="/login" replace />
-  if (user.hasOnboarded) return <Navigate to="/" replace />
-
-  const next = () => setStep(prev => Math.min(prev + 1, storySlides.length))
-
-  const save = async event => {
-    event.preventDefault()
-    setSaving(true)
-    try {
-      await completeOnboarding({ nickname, cometName, goal, goalType, appLanguage, themeColor })
-      navigate('/')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="onboarding-cinematic v9-onboarding">
-      {isStory ? (
-        <section className="story-card v9-story-card">
-          <div className="v9-story-visual">
-            <span className="v9-story-nebula" />
-            <span className="v9-story-stars" />
-            <motion.div className="v9-story-ring ring-one" animate={{ rotate: [0, 360] }} transition={{ duration: 22, repeat: Infinity, ease: 'linear' }} />
-            <motion.div className="v9-story-ring ring-two" animate={{ rotate: [360, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} />
-            <motion.div className="v9-story-planet" animate={{ scale: [1, 1.05, 1], y: [-4, 5, -4] }} transition={{ duration: 5, repeat: Infinity }} />
-            <motion.div className="v9-birth-core" animate={{ scale: [0.92, 1.08, 0.92], opacity: [.72, 1, .72] }} transition={{ duration: 2.8, repeat: Infinity }} />
-            <motion.div className="v9-story-comet" animate={{ x: [-18, 22, -18], y: [18, -18, 18] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
-              <CometAvatar level={step * 9 + 1} equipped={[]} />
-            </motion.div>
-            <span className="story-emoji v9-story-emoji">{slide.emoji}</span>
-          </div>
-          <AnimatePresence mode="wait">
-            <motion.div key={slide.id} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }} className="v9-story-copy">
-              <p className="eyebrow">Cometail Origin {step + 1}/{storySlides.length}</p>
-              <h1>{slide.titleKo}</h1>
-              <h2>{slide.titleEn}</h2>
-              <p>{slide.bodyKo}</p>
-              <p className="story-en">{slide.bodyEn}</p>
-              <div className="v9-story-progress" aria-label="Story progress">
-                {storySlides.map((item, index) => <span key={item.id} className={index <= step ? 'active' : ''} />)}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-          <div className="story-actions no-skip-actions v9-story-actions">
-            <button className="primary-button" onClick={next}>{step === storySlides.length - 1 ? '내 Comet Buddy 만나기' : '다음 별빛 보기'} <IconChevronRight size={18} /></button>
-          </div>
-        </section>
-      ) : (
-        <form className="setup-card universe-setup v9-setup" onSubmit={save}>
-          <div className="v9-setup-preview">
-            <span className="v9-setup-glow" />
-            <CometAvatar level={1} equipped={[]} preview />
-          </div>
-          <div className="v9-setup-form">
-            <div className="section-heading centered">
-              <p className="eyebrow">Wake your first comet</p>
-              <h1>이제 너의 Comet Buddy를 깨워요</h1>
-              <p>처음에는 한국어 도움을 받을 수 있어요. 레벨이 오르면 Cometail은 자연스럽게 영어 중심의 우주로 전환됩니다.</p>
-            </div>
-            <label>닉네임<span className="field-help">다른 학생들에게 보이는 내 이름이에요. 나중에 프로필에서 바꿀 수 있어요.</span><input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="앱에서 사용할 이름" /></label>
-            <label>Comet Buddy 이름<span className="field-help">내가 키우게 될 캐릭터의 이름이에요. 닉네임과 같아도 되고 달라도 괜찮아요.</span><input value={cometName} onChange={e => setCometName(e.target.value)} placeholder="예: Lumi, Nova, Aster" /></label>
-            <label>앱 언어<select value={appLanguage} onChange={e => setAppLanguage(e.target.value)}><option value="ko">한국어 도움 받기</option><option value="en">English only</option></select></label>
-            <label>목표 타입<select value={goalType} onChange={e => setGoalType(e.target.value)}>{goalTypes.map(type => <option key={type}>{type}</option>)}</select></label>
-            <label>이번 달 영어 목표<span className="field-help">이번 달에 Cometail로 가장 먼저 이루고 싶은 작은 목표를 적어주세요.</span><textarea value={goal} onChange={e => setGoal(e.target.value)} rows="3" placeholder="예: 매일 영어 일기 3문장 쓰기" /></label>
-            <div className="mini-palette-row v9-palette-row">
-              {themePalettes.slice(0, 6).map(theme => <button type="button" key={theme.id} className={themeColor === theme.id ? 'active' : ''} onClick={() => setThemeColor(theme.id)}>{theme.emoji} {theme.name}</button>)}
-            </div>
-            <button className="primary-button" disabled={saving}><IconSparkles size={18} /> {saving ? '별빛 저장 중...' : '내 커멧 시작하기'}</button>
-          </div>
-        </form>
-      )}
-    </div>
-  )
+export default function OnboardingPage(){
+ const [step,setStep]=useState(0); const [form,setForm]=useState({nickname:'',cometName:'',adultConfirmed:false,startMode:'',genderPreference:'any',vibe:'English habit friend'})
+ const completeOnboarding=useAppStore(s=>s.completeOnboarding); const nav=useNavigate()
+ const next=()=>setStep(v=>v+1)
+ const finish=async()=>{await completeOnboarding(form);nav('/')}
+ return <main className="onboarding-v16">
+  <div className="onboarding-card">
+   <div className="onboarding-progress"><span style={{width:`${(step+1)/3*100}%`}}/></div>
+   {step===0&&<section><div className="onboarding-icon">☄</div><p className="eyebrow">WELCOME SIGNAL</p><h1>당신의 Comet은<br/>어떤 이름으로 빛날까요?</h1><label>다른 사람에게 보일 닉네임<input value={form.nickname} onChange={e=>setForm({...form,nickname:e.target.value})} placeholder="예: Comet"/></label><label>내가 키울 Comet의 이름<input value={form.cometName} onChange={e=>setForm({...form,cometName:e.target.value})} placeholder="예: Lumi"/></label><button className="primary-wide" disabled={!form.nickname||!form.cometName} onClick={next}>다음 <IconArrowRight size={18}/></button></section>}
+   {step===1&&<section><p className="eyebrow">CHOOSE YOUR ORBIT</p><h1>어떻게 시작할까요?</h1><div className="choice-grid"><button className={form.startMode==='friend'?'selected':''} onClick={()=>setForm({...form,startMode:'friend'})}><IconFriends/><strong>아는 사람과 시작</strong><span>페어 코드를 보내 둘만의 우주를 만들어요.</span></button><button className={form.startMode==='anonymous'?'selected':''} onClick={()=>setForm({...form,startMode:'anonymous'})}><IconUserHeart/><strong>새로운 Mate 만나기</strong><span>익명으로 연결되어 매일 서로를 알아가요.</span></button><button className={form.startMode==='solo'?'selected':''} onClick={()=>setForm({...form,startMode:'solo'})}><IconUser/><strong>우선 혼자 시작</strong><span>혼자 기록하다가 나중에 Mate를 찾을 수 있어요.</span></button></div><button className="primary-wide" disabled={!form.startMode} onClick={next}>다음 <IconArrowRight size={18}/></button></section>}
+   {step===2&&<section><p className="eyebrow">SAFE & GENTLE</p><h1>{form.startMode==='anonymous'?'새로운 연결을 준비해요':'마지막으로 확인해주세요'}</h1>{form.startMode==='anonymous'&&<><label>연결을 원하는 상대<select value={form.genderPreference} onChange={e=>setForm({...form,genderPreference:e.target.value})}><option value="any">성별 상관없음</option><option value="female">여성과 연결</option><option value="male">남성과 연결</option></select></label><label>원하는 관계 분위기<select value={form.vibe} onChange={e=>setForm({...form,vibe:e.target.value})}><option>English habit friend</option><option>편하게 이야기할 친구</option><option>새로운 사람 알아가기</option><option>친구 또는 연애 가능성 모두 열어두기</option></select></label></>}<label className="check-line"><input type="checkbox" checked={form.adultConfirmed} onChange={e=>setForm({...form,adultConfirmed:e.target.checked})}/><span>익명 매칭은 만 18세 이상이며, 안전 가이드에 동의해요.</span></label><button className="primary-wide" disabled={form.startMode==='anonymous'&&!form.adultConfirmed} onClick={finish}><IconSparkles size={18}/> 첫 별빛 보내기</button></section>}
+  </div>
+ </main>
 }

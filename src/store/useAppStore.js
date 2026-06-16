@@ -1,600 +1,160 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
-import {
-  dailyMissions,
-  diaryPrompts,
-  inviteCodeRecords,
-  sampleDiaries,
-  sampleHomework,
-  sampleStudents,
-  sampleUser,
-  shopItems,
-  weeklyQuests,
-} from '../data/content'
+import { dailyQuestions } from '../data/pairContent'
 import {
   canUseFirebase,
-  createDiaryRemote,
-  createInviteCodeRemote,
-  createStudentInviteCodeRemote,
   listenToAuthState,
-  listInviteCodesRemote,
-  listMyDiariesRemote,
-  listUniverseStudentsRemote,
-  normalizeInviteCode,
   saveUserProfile,
   signInCometail,
   signOutCometail,
   signUpWithInvite,
 } from '../services/firebaseServices'
 
-const calcLevel = points => Math.max(1, Math.floor(points / 100) + 1)
-const wearableTypes = ['Hat', 'Face', 'Outfit', 'Tail', 'Hand', 'Background', 'Badge', 'Pet', 'Aura', 'Frame']
-const planetDecorTypes = ['Planet', 'Room']
-const randomItem = (owned, level = 1) => {
-  const pool = shopItems.filter(item => [...wearableTypes, ...planetDecorTypes].includes(item.type) && !owned.includes(item.id) && Number(level || 1) >= Number(item.minLevel || 1))
-  if (!pool.length) return null
-  return pool[Math.floor(Math.random() * pool.length)]
-}
-const getLevelProgress = user => {
-  const totalEarned = Number(user.totalEarned || user.points || 0)
-  const level = calcLevel(totalEarned)
-  const levelStart = Math.max(0, (level - 1) * 100)
-  const xpInLevel = Math.max(0, totalEarned - levelStart)
-  return { totalEarned, level, xpInLevel, xpNeeded: Math.max(0, 100 - xpInLevel), progress: Math.min(100, Math.round((xpInLevel / 100) * 100)) }
-}
-const effectiveLanguage = user => user.level >= 20 ? 'en' : user.appLanguage || 'ko'
-const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || 'hairycomet@gmail.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
-const isTeacherEmail = email => adminEmails.includes((email || '').trim().toLowerCase())
-const createStudentCode = nickname => {
-  const seed = (nickname || 'COMET').replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase() || 'COMET'
-  return `${seed}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+const blankUser = {
+  uid: '', email: '', role: 'student', isAdmin: false, hasOnboarded: false,
+  nickname: 'New Comet', cometName: 'Lumi', points: 0, level: 1, streak: 0,
+  inviteTickets: 1, equipped: [], startMode: '', adultConfirmed: false,
 }
 
-const persistUserRemote = async get => {
-  if (!canUseFirebase) return
-  const user = get().user
-  if (!user?.uid) return
+const demoPair = {
+  id: 'demo-orbit', mode: 'anonymous', status: 'connected',
+  mate: { nickname: 'Starlit', cometName: 'Moa', level: 7, streak: 5, online: false },
+  connectedAt: new Date(Date.now() - 6 * 86400000).toISOString(),
+  pairStreak: 6, pairLight: 145, stage: 'Orbit', constellationStars: 6,
+  sharedStyle: 'orbit-hoodie',
+}
+
+const defaultEntry = () => ({
+  date: new Date().toISOString().slice(0, 10),
+  questionId: dailyQuestions[0].id,
+  myAnswer: '', mateAnswer: '', myPhoto: '', matePhoto: '',
+  mySubmitted: false, mateSubmitted: false, unlocked: false,
+  reactions: [], feedback: null,
+})
+
+const syncUser = async user => {
+  if (!canUseFirebase || !user?.uid) return
   const { isAdmin, ...profile } = user
-  try {
-    await saveUserProfile(user.uid, profile)
-  } catch (error) {
-    console.warn('User progress sync failed', error)
-  }
+  try { await saveUserProfile(user.uid, profile) } catch (error) { console.warn('profile sync failed', error) }
 }
 
-export const useAppStore = create(
-  persist(
-    (set, get) => ({
-      user: sampleUser,
-      diaries: sampleDiaries,
-      homework: sampleHomework,
-      students: sampleStudents,
-      missions: dailyMissions,
-      quests: weeklyQuests,
-      inviteCodes: inviteCodeRecords,
-      typingRecords: sampleUser.typingRecords || [],
-      notifications: [],
-      theme: 'light',
-      isAuthed: false,
-      isAuthReady: !canUseFirebase,
-      isFirebaseMode: canUseFirebase,
-      authError: '',
-      currentPrompt: diaryPrompts[0],
-      initializeAuth: () => {
-        if (!canUseFirebase) {
-          set({ isAuthReady: true })
-          return () => {}
-        }
+export const useAppStore = create(persist((set, get) => ({
+  user: blankUser,
+  isAuthed: false,
+  isAuthReady: !canUseFirebase,
+  isFirebaseMode: canUseFirebase,
+  theme: 'dark',
+  pair: null,
+  todayEntry: defaultEntry(),
+  memories: [],
+  matching: { status: 'idle', preferences: { ageRange: '20s-30s', genderPreference: 'any', vibe: 'English habit friend', time: 'evening' } },
 
-        // Always start a fresh listener. A previous persisted or hot-reloaded listener
-        // should never keep the app trapped on the loading screen.
-        const previousUnsubscribe = get().authUnsubscribe
-        if (typeof previousUnsubscribe === 'function') {
-          try { previousUnsubscribe() } catch (_) { /* ignore stale listener cleanup */ }
-        }
+  initializeAuth: () => {
+    if (!canUseFirebase) { set({ isAuthReady: true }); return () => {} }
+    set({ isAuthReady: false })
+    const unsubscribe = listenToAuthState(profile => {
+      if (!profile) set({ isAuthed: false, user: blankUser, isAuthReady: true })
+      else set({ isAuthed: true, user: { ...blankUser, ...profile }, isAuthReady: true })
+    })
+    return unsubscribe
+  },
 
-        set({ isAuthReady: false, authError: '' })
-        let settled = false
-        const finish = payload => {
-          settled = true
-          set({ ...payload, isAuthReady: true })
-        }
+  login: async ({ email, password }) => {
+    try {
+      if (canUseFirebase) {
+        const profile = await signInCometail({ email: email.trim().toLowerCase(), password })
+        set({ isAuthed: true, user: { ...blankUser, ...profile } })
+      } else {
+        set({ isAuthed: true, user: { ...blankUser, uid: 'local-user', email, hasOnboarded: true, nickname: 'Comet', cometName: 'Lumi', startMode: 'anonymous', adultConfirmed: true } })
+      }
+      toast.success('당신의 우주가 열렸어요')
+      return true
+    } catch (error) { toast.error('로그인 정보를 확인해주세요'); return false }
+  },
 
-        const timeoutId = window.setTimeout(() => {
-          if (!settled) {
-            console.warn('Auth restore timed out. Returning to login screen.')
-            finish({ isAuthed: false, user: sampleUser, authError: 'auth-restore-timeout' })
-          }
-        }, 7000)
+  signup: async ({ email, password, inviteCode }) => {
+    try {
+      if (canUseFirebase) {
+        const profile = await signUpWithInvite({ email: email.trim().toLowerCase(), password, inviteCode })
+        set({ isAuthed: true, user: { ...blankUser, ...profile } })
+      } else {
+        if (!inviteCode.trim()) throw new Error('invite-required')
+        set({ isAuthed: true, user: { ...blankUser, uid: crypto.randomUUID(), email, hasOnboarded: false } })
+      }
+      toast.success('초대 확인 완료')
+      return true
+    } catch (error) { toast.error('초대코드 또는 가입 정보를 확인해주세요'); return false }
+  },
 
-        const unsubscribe = listenToAuthState(async profile => {
-          window.clearTimeout(timeoutId)
-          if (!profile) {
-            finish({ isAuthed: false, user: sampleUser })
-            return
-          }
-          let nextDiaries = get().diaries
-          let nextInviteCodes = get().inviteCodes
-          let nextStudents = []
-          try {
-            nextDiaries = await listMyDiariesRemote(profile.uid)
-            nextStudents = await listUniverseStudentsRemote()
-            if (profile.isAdmin) nextInviteCodes = await listInviteCodesRemote()
-          } catch (error) {
-            console.warn('Firebase preload failed', error)
-          }
-          finish({
-            isAuthed: true,
-            user: profile,
-            diaries: nextDiaries?.length ? nextDiaries : [],
-            students: nextStudents?.length ? nextStudents : [{ ...profile, id: profile.uid }],
-            inviteCodes: nextInviteCodes?.length ? nextInviteCodes : get().inviteCodes,
-          })
-        })
+  logout: async () => { try { await signOutCometail() } catch (_) {} set({ isAuthed: false, user: blankUser, pair: null }) },
 
-        const safeUnsubscribe = () => {
-          window.clearTimeout(timeoutId)
-          if (typeof unsubscribe === 'function') unsubscribe()
-        }
-        set({ authUnsubscribe: safeUnsubscribe })
-        return safeUnsubscribe
-      },
-      getLanguage: () => effectiveLanguage(get().user),
-      validateInviteCode: code => {
-        const normalized = normalizeInviteCode(code)
-        const record = get().inviteCodes.find(item => item.code === normalized)
-        return Boolean(record && record.active && Number(record.usedCount ?? record.used ?? 0) < Number(record.maxUses || 1))
-      },
-      login: async ({ email, password }) => {
-        const normalizedEmail = (email || '').trim().toLowerCase()
-        if (canUseFirebase) {
-          try {
-            const profile = await signInCometail({ email: normalizedEmail, password })
-            let nextStudents = []
-            try { nextStudents = await listUniverseStudentsRemote() } catch (error) { console.warn('Student preload failed', error) }
-            set({ isAuthed: true, user: profile, students: nextStudents?.length ? nextStudents : [{ ...profile, id: profile.uid }], authError: '' })
-            toast.success('Cometail에 들어왔어요')
-            return true
-          } catch (error) {
-            console.error(error)
-            set({ authError: error.message })
-            toast.error('로그인 정보를 다시 확인해주세요')
-            return false
-          }
-        }
-        set(state => ({
-          isAuthed: true,
-          user: {
-            ...state.user,
-            email: normalizedEmail,
-            role: isTeacherEmail(normalizedEmail) ? 'teacher' : 'student',
-            isAdmin: isTeacherEmail(normalizedEmail),
-            hasOnboarded: normalizedEmail === state.user.email ? state.user.hasOnboarded : true,
-          },
-        }))
-        return true
-      },
-      signup: async ({ email, password, inviteCode }) => {
-        const normalized = normalizeInviteCode(inviteCode)
-        const normalizedEmail = (email || '').trim().toLowerCase()
+  completeOnboarding: async data => {
+    const nextUser = { ...get().user, ...data, hasOnboarded: true }
+    const nextPair = data.startMode === 'solo' ? null : data.startMode === 'friend' ? {
+      ...demoPair, mode: 'friend', status: 'waiting', mate: null, pairCode: `ORBIT-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+    } : demoPair
+    set({ user: nextUser, pair: nextPair })
+    await syncUser(nextUser)
+  },
 
-        if (canUseFirebase) {
-          try {
-            const profile = await signUpWithInvite({ email: normalizedEmail, password, inviteCode: normalized })
-            let nextStudents = []
-            try { nextStudents = await listUniverseStudentsRemote() } catch (error) { console.warn('Student preload failed', error) }
-            set({ isAuthed: true, user: profile, students: nextStudents?.length ? nextStudents : [{ ...profile, id: profile.uid }], authError: '' })
-            toast.success('초대코드 확인 완료')
-            return true
-          } catch (error) {
-            console.error(error)
-            set({ authError: error.message })
-            toast.error('참여코드 또는 가입 정보를 다시 확인해주세요')
-            return false
-          }
-        }
+  connectDemoMate: () => set({ pair: demoPair }),
+  startMatching: preferences => {
+    set({ matching: { status: 'searching', preferences } })
+    window.setTimeout(() => {
+      set({ matching: { status: 'matched', preferences }, pair: demoPair })
+      toast.success('새로운 별빛 신호가 도착했어요')
+    }, 900)
+  },
+  cancelMatching: () => set(state => ({ matching: { ...state.matching, status: 'idle' } })),
 
-        if (!get().validateInviteCode(normalized)) {
-          toast.error('참여코드를 다시 확인해주세요')
-          return false
-        }
-        set(state => ({
-          isAuthed: true,
-          inviteCodes: state.inviteCodes.map(record => record.code === normalized ? { ...record, used: Number(record.usedCount ?? record.used ?? 0) + 1, usedCount: Number(record.usedCount ?? record.used ?? 0) + 1 } : record),
-          user: {
-            ...sampleUser,
-            uid: crypto.randomUUID(),
-            email: normalizedEmail,
-            nickname: 'New Comet',
-            cometName: 'Lumi',
-            goal: '',
-            points: 0,
-            totalEarned: 0,
-            universeInvestment: 0,
-            planetInvestment: 0,
-            level: 1,
-            streak: 0,
-            longestStreak: 0,
-            hasOnboarded: false,
-            typingRecords: [],
-            reviewedExpressions: [],
-            owned: [],
-            equipped: [],
-            planetDecor: [],
-            completedMissions: [],
-            completedQuests: [],
-            inviteTickets: 1,
-            usedInviteTickets: 0,
-            generatedInviteCodes: [],
-            inviteCode: normalized,
-            role: 'student',
-            isAdmin: false,
-            firstJourney: { firstDiary: false, firstGift: false, firstWardrobe: false, firstTyping: false, firstNotebook: false },
-            savedPatterns: [],
-            diaryDraft: null,
-            createdAt: dayjs().toISOString(),
-          },
-        }))
-        return true
+  setMyAnswer: value => set(state => ({ todayEntry: { ...state.todayEntry, myAnswer: value } })),
+  setMyPhoto: value => set(state => ({ todayEntry: { ...state.todayEntry, myPhoto: value } })),
+  submitMyEntry: () => {
+    const state = get()
+    if (!state.todayEntry.myAnswer.trim()) { toast.error('한 문장이라도 남겨주세요'); return }
+    const mateAlreadySubmitted = state.todayEntry.mateSubmitted
+    const next = {
+      ...state.todayEntry,
+      mySubmitted: true,
+      unlocked: mateAlreadySubmitted,
+      feedback: {
+        natural: state.todayEntry.myAnswer.replace(/\bi\b/g, 'I').trim(),
+        expression: 'One small thing that made me happy was ~',
+        meaning: '나를 기쁘게 한 작은 일은 ~였다',
       },
-      logout: async () => {
-        try { await signOutCometail() } catch (error) { console.warn(error) }
-        set({ isAuthed: false, user: sampleUser })
-      },
-      completeOnboarding: async data => {
-        const nextData = { ...data, hasOnboarded: true }
-        set(state => ({ user: { ...state.user, ...nextData } }))
-        if (canUseFirebase) {
-          try { await saveUserProfile(get().user.uid, nextData) } catch (error) { console.warn(error) }
-        }
-      },
-      toggleTheme: () => set(state => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
-      setThemeColor: themeColor => {
-        set(state => ({ user: { ...state.user, themeColor } }))
-        void persistUserRemote(get)
-        toast.success('테마를 바꿨어요')
-      },
-      setDisplayMode: displayMode => {
-        set(state => ({ user: { ...state.user, displayMode } }))
-        void persistUserRemote(get)
-      },
-      updateProfile: async data => {
-        set(state => ({ user: { ...state.user, ...data } }))
-        if (canUseFirebase) {
-          try {
-            const profile = await saveUserProfile(get().user.uid, data)
-            if (profile) set({ user: profile })
-          } catch (error) {
-            console.warn(error)
-            toast.error('저장 중 문제가 생겼어요')
-            return
-          }
-        }
-        toast.success('설정을 저장했어요')
-      },
-      setLanguage: appLanguage => {
-        if (get().user.level >= 20 && appLanguage === 'ko') {
-          toast.error('Level 20부터는 English Universe로 전환돼요')
-          return
-        }
-        set(state => ({ user: { ...state.user, appLanguage } }))
-        void persistUserRemote(get)
-      },
-      rotatePrompt: () => {
-        const current = get().currentPrompt
-        const index = diaryPrompts.indexOf(current)
-        set({ currentPrompt: diaryPrompts[(index + 1) % diaryPrompts.length] })
-      },
-      setDiaryDraft: draft => {
-        set(state => ({ user: { ...state.user, diaryDraft: draft ? { ...draft, updatedAt: dayjs().toISOString() } : null } }))
-        void persistUserRemote(get)
-      },
-      addPoints: points => {
-        set(state => {
-          const next = state.user.points + points
-          const totalEarned = (state.user.totalEarned || state.user.points) + points
-          return { user: { ...state.user, points: next, totalEarned, level: calcLevel(totalEarned) } }
-        })
-        void persistUserRemote(get)
-      },
-      addDiary: async ({ title, content, visibility, feedbackRequested = false }) => {
-        const entry = {
-          id: crypto.randomUUID(), userId: get().user.uid, nickname: get().user.nickname,
-          title: title || 'Untitled Diary', content, visibility: visibility || get().user.diaryVisibilityDefault || 'private',
-          feedbackRequested, status: feedbackRequested ? 'waiting' : 'private',
-          feedback: '', corrected: '', natural: '', expression: '', teacherComment: '',
-          createdAt: dayjs().toISOString(), points: 10,
-        }
-        let savedEntry = entry
-        if (canUseFirebase) {
-          try { savedEntry = await createDiaryRemote({ user: get().user, diary: entry }) || entry } catch (error) { console.warn(error); toast.error('일기 저장 중 문제가 생겼어요') }
-        }
-        set(state => {
-          const newPoints = state.user.points + 10
-          const totalEarned = (state.user.totalEarned || state.user.points) + 10
-          const completedMissions = [...new Set([...(state.user.completedMissions || []), 'daily_diary'])]
-          const firstJourney = { ...(state.user.firstJourney || {}), firstDiary: true }
-          return {
-            diaries: [savedEntry, ...state.diaries],
-            user: { ...state.user, completedMissions, firstJourney, diaryDraft: null, points: newPoints, totalEarned, level: calcLevel(totalEarned), streak: state.user.streak + 1, longestStreak: Math.max(state.user.longestStreak, state.user.streak + 1) },
-          }
-        })
-        void persistUserRemote(get)
-        toast.success('+10 Starlight')
-      },
-      completeMission: missionId => {
-        const mission = get().missions.find(item => item.id === missionId)
-        if (!mission || get().user.completedMissions?.includes(missionId)) return
-        set(state => {
-          const newPoints = state.user.points + mission.reward
-          const totalEarned = (state.user.totalEarned || state.user.points) + mission.reward
-          return { user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedMissions: [...(state.user.completedMissions || []), missionId] } }
-        })
-        void persistUserRemote(get)
-        toast.success(`+${mission.reward} Starlight`)
-      },
-      completeQuest: questId => {
-        const quest = get().quests.find(item => item.id === questId)
-        if (!quest || get().user.completedQuests?.includes(questId)) return
-        set(state => {
-          const newPoints = state.user.points + quest.reward
-          const totalEarned = (state.user.totalEarned || state.user.points) + quest.reward
-          return { user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedQuests: [...(state.user.completedQuests || []), questId] } }
-        })
-        void persistUserRemote(get)
-        toast.success(`+${quest.reward} Starlight`)
-      },
-      submitHomework: id => {
-        set(state => {
-          const newPoints = state.user.points + 15
-          const totalEarned = (state.user.totalEarned || state.user.points) + 15
-          return { homework: state.homework.map(item => item.id === id ? { ...item, status: 'submitted' } : item), user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned) } }
-        })
-        void persistUserRemote(get)
-        toast.success('+15 Starlight')
-      },
-      buyItem: itemId => {
-        const item = shopItems.find(product => product.id === itemId)
-        const { user } = get()
-        if (!item) return
-        if (Number(user.level || 1) < Number(item.minLevel || 1)) { toast.error(`Level ${item.minLevel}부터 열리는 아이템이에요`); return }
-        if (item.id === 'extra_invite') {
-          if (user.points < item.price) { toast.error('별빛이 부족해요'); return }
-          set(state => ({ user: { ...state.user, points: state.user.points - item.price, inviteTickets: (state.user.inviteTickets || 0) + 1 } }))
-          void persistUserRemote(get)
-          toast.success('초대권 1장이 추가됐어요')
-          return
-        }
-        if (user.owned?.includes(itemId) && item.type !== 'Gift Box') { toast('이미 가지고 있어요'); return }
-        if (user.points < item.price) { toast.error('별빛이 부족해요'); return }
-        if (item.type === 'Gift Box') {
-          const prize = randomItem(user.owned || [], user.level)
-          if (!prize) {
-            const refund = Math.max(30, Math.round(item.price * 0.6))
-            set(state => ({ user: { ...state.user, points: state.user.points - item.price + refund } }))
-            void persistUserRemote(get)
-            toast(`지금 받을 수 있는 새 아이템을 모두 모았어요. ${refund} Starlight를 돌려드렸어요.`)
-            return
-          }
-          set(state => ({ user: { ...state.user, points: state.user.points - item.price, owned: [...new Set([...(state.user.owned || []), prize.id])], lastBoxPrize: prize.id } }))
-          void persistUserRemote(get)
-          toast.success(`${prize.emoji} ${prize.name} (${prize.rarity})이 나왔어요!`)
-          return
-        }
-        set(state => ({ user: { ...state.user, points: state.user.points - item.price, owned: [...new Set([...(state.user.owned || []), itemId])] } }))
-        void persistUserRemote(get)
-        toast.success(`${item.name} 구매 완료`)
-      },
-      equipItem: itemId => {
-        const item = shopItems.find(product => product.id === itemId)
-        if (!item || !wearableTypes.includes(item.type)) { toast('장착 아이템이 아니에요'); return }
-        set(state => {
-          const sameTypeIds = shopItems.filter(product => product.type === item.type).map(product => product.id)
-          const kept = (state.user.equipped || []).filter(id => !sameTypeIds.includes(id))
-          return { user: { ...state.user, equipped: [...kept, itemId], firstJourney: { ...(state.user.firstJourney || {}), firstWardrobe: true } } }
-        })
-        void persistUserRemote(get)
-        toast.success('장착했어요')
-      },
-      unequipType: type => {
-        set(state => {
-          const sameTypeIds = shopItems.filter(product => product.type === type).map(product => product.id)
-          return { user: { ...state.user, equipped: (state.user.equipped || []).filter(id => !sameTypeIds.includes(id)) } }
-        })
-        void persistUserRemote(get)
-      },
-      setEquippedItems: equipped => {
-        const nextEquipped = Array.isArray(equipped) ? equipped.filter(Boolean) : []
-        set(state => ({ user: { ...state.user, equipped: nextEquipped, firstJourney: { ...(state.user.firstJourney || {}), firstWardrobe: true } } }))
-        void persistUserRemote(get)
-        toast.success('꾸미기를 저장했어요')
-      },
-      resetEquipped: () => {
-        set(state => ({ user: { ...state.user, equipped: [] } }))
-        void persistUserRemote(get)
-      },
-      decoratePlanet: itemId => {
-        const item = shopItems.find(product => product.id === itemId)
-        const user = get().user
-        if (!item || !planetDecorTypes.includes(item.type)) return
-        if (!user.owned?.includes(itemId)) { toast.error('먼저 상점에서 구매해야 해요'); return }
-        if (user.level < 30 && item.type === 'Planet') { toast.error('Level 30부터 행성 장식이 가능해요'); return }
-        set(state => ({ user: { ...state.user, planetDecor: [...new Set([...(state.user.planetDecor || []), itemId])] } }))
-        void persistUserRemote(get)
-        toast.success('우주 장식을 적용했어요')
-      },
-      removePlanetDecor: itemId => {
-        set(state => ({ user: { ...state.user, planetDecor: (state.user.planetDecor || []).filter(id => id !== itemId) } }))
-        void persistUserRemote(get)
-      },
-      cheerStudent: (studentId, reactionId) => {
-        set(state => ({ user: { ...state.user, universeCheers: { ...(state.user.universeCheers || {}), [`${studentId}-${reactionId}`]: true } } }))
-        void persistUserRemote(get)
-        toast.success('응원을 보냈어요')
-      },
-      generateInviteCode: async () => {
-        const user = get().user
-        if ((user.inviteTickets || 0) < 1) { toast.error('사용 가능한 초대권이 없어요'); return }
-        try {
-          if (canUseFirebase) {
-            const record = await createStudentInviteCodeRemote({ ownerUid: user.uid, ownerNickname: user.nickname })
-            set(state => ({
-              inviteCodes: [record, ...state.inviteCodes.filter(item => item.code !== record.code)],
-              user: { ...state.user, inviteTickets: state.user.inviteTickets - 1, usedInviteTickets: (state.user.usedInviteTickets || 0) + 1, generatedInviteCodes: [record.code, ...(state.user.generatedInviteCodes || [])] },
-            }))
-            toast.success(`초대코드 ${record.code} 생성 완료`)
-            return
-          }
-          const code = createStudentCode(user.nickname)
-          set(state => ({
-            inviteCodes: [{ code, label: `${state.user.nickname} invite`, maxUses: 1, used: 0, active: true }, ...state.inviteCodes],
-            user: { ...state.user, inviteTickets: state.user.inviteTickets - 1, usedInviteTickets: (state.user.usedInviteTickets || 0) + 1, generatedInviteCodes: [code, ...(state.user.generatedInviteCodes || [])] },
-          }))
-          toast.success(`초대코드 ${code} 생성 완료`)
-        } catch (error) {
-          console.error(error)
-          toast.error('초대코드를 만들 수 없어요')
-        }
-      },
-      createAdminInviteCode: async ({ code, label, maxUses }) => {
-        const normalized = normalizeInviteCode(code || `COMET-${Math.random().toString(36).slice(2, 7)}`)
-        try {
-          const remoteRecord = canUseFirebase
-            ? await createInviteCodeRemote({ code: normalized, label, maxUses, createdBy: get().user.uid })
-            : null
-          const record = remoteRecord || { code: normalized, label: label || 'Teacher invite', maxUses: Number(maxUses || 1), used: 0, active: true }
-          set(state => ({ inviteCodes: [record, ...state.inviteCodes.filter(item => item.code !== record.code)] }))
-          toast.success('참여코드를 만들었어요')
-        } catch (error) {
-          console.error(error)
-          toast.error('이미 있거나 만들 수 없는 코드예요')
-        }
-      },
-      saveExpression: expression => {
-        if (!expression?.trim()) return
-        set(state => ({ user: { ...state.user, savedExpressions: [...new Set([...(state.user.savedExpressions || []), expression.trim()])] } }))
-        void persistUserRemote(get)
-        toast.success('표현 보관함에 저장했어요')
-      },
-      savePattern: patternData => {
-        const pattern = typeof patternData === 'string' ? { pattern: patternData } : patternData
-        if (!pattern?.pattern?.trim()) return
-        set(state => {
-          const existing = state.user.savedPatterns || []
-          const item = { id: pattern.id || crypto.randomUUID(), meaning: pattern.meaning || '', example: pattern.example || '', visibility: pattern.visibility || 'public', createdAt: dayjs().toISOString(), ...pattern, pattern: pattern.pattern.trim() }
-          const next = existing.some(saved => saved.pattern === item.pattern) ? existing : [item, ...existing]
-          return { user: { ...state.user, savedPatterns: next } }
-        })
-        void persistUserRemote(get)
-        toast.success('문장 패턴을 보관함에 저장했어요')
-      },
-      addFeedback: (diaryId, feedbackData) => {
-        set(state => ({ diaries: state.diaries.map(diary => diary.id === diaryId ? { ...diary, ...feedbackData, feedback: feedbackData.feedback || diary.feedback } : diary) }))
-        if (feedbackData.expression) get().saveExpression(feedbackData.expression)
-        toast.success('피드백 저장 완료')
-      },
-      claimStarterGift: () => {
-        const user = get().user
-        if (user.firstJourney?.firstGift) { toast('이미 첫 선물을 받았어요'); return }
-        const starterItems = ['violet_ribbon', 'pencil_wand', 'sparkle_cheeks'].filter(id => shopItems.some(item => item.id === id))
-        set(state => ({ user: { ...state.user, firstJourney: { ...(state.user.firstJourney || {}), firstGift: true }, owned: [...new Set([...(state.user.owned || []), ...starterItems])], points: state.user.points + 20, totalEarned: (state.user.totalEarned || state.user.points) + 20, level: calcLevel((state.user.totalEarned || state.user.points) + 20) } }))
-        void persistUserRemote(get)
-        toast.success('첫 선물과 +20 Starlight를 받았어요')
-      },
-      teacherGift: ({ itemId, points = 0 }) => {
-        set(state => {
-          const giftPoints = Number(points || 0)
-          const newPoints = state.user.points + giftPoints
-          const totalEarned = (state.user.totalEarned || state.user.points) + giftPoints
-          const owned = itemId ? [...new Set([...(state.user.owned || []), itemId])] : state.user.owned
-          return { user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), owned } }
-        })
-        void persistUserRemote(get)
-        toast.success('선생님 선물을 지급했어요')
-      },
-      addHomework: homework => {
-        set(state => ({ homework: [{ id: crypto.randomUUID(), status: 'open', reward: 15, ...homework }, ...state.homework] }))
-        toast.success('숙제를 등록했어요')
-      },
-
-      completeTypingPractice: record => {
-        set(state => {
-          const todayCount = (state.user.typingRecords || []).filter(item => item.completed && dayjs(item.createdAt).isSame(dayjs(), 'day')).length
-          const reward = record?.completed ? (todayCount + 1) * 5 : 0
-          const newPoints = state.user.points + reward
-          const totalEarned = (state.user.totalEarned || state.user.points) + reward
-          const completedMissions = reward ? [...new Set([...(state.user.completedMissions || []), 'daily_typing'])] : state.user.completedMissions
-          const typingRecord = { id: crypto.randomUUID(), createdAt: dayjs().toISOString(), reward, ...record }
-          return {
-            typingRecords: [typingRecord, ...(state.typingRecords || [])],
-            user: { ...state.user, points: newPoints, totalEarned, level: calcLevel(totalEarned), completedMissions, typingRecords: [typingRecord, ...(state.user.typingRecords || [])], firstJourney: { ...(state.user.firstJourney || {}), firstTyping: record?.completed || state.user.firstJourney?.firstTyping } },
-          }
-        })
-        const updatedUser = get().user
-        const latest = updatedUser.typingRecords?.[0]
-        void persistUserRemote(get)
-        if (latest?.reward) toast.success(`+${latest.reward} Starlight for typing`)
-      },
-      reviewExpression: expression => {
-        if (!expression) return
-        if (get().user.reviewedExpressions?.includes(expression)) { toast('이미 복습했어요'); return }
-        set(state => {
-          const newPoints = state.user.points + 5
-          const totalEarned = (state.user.totalEarned || state.user.points) + 5
-          return {
-            user: {
-              ...state.user,
-              points: newPoints,
-              totalEarned,
-              level: calcLevel(totalEarned),
-              reviewedExpressions: [...(state.user.reviewedExpressions || []), expression],
-              completedMissions: [...new Set([...(state.user.completedMissions || []), 'daily_feedback'])],
-            },
-          }
-        })
-        void persistUserRemote(get)
-        toast.success('+5 Starlight for review')
-      },
-      updateHomeworkStatus: (id, status) => {
-        set(state => ({ homework: state.homework.map(item => item.id === id ? { ...item, status } : item) }))
-      },
-      investUniverse: amount => {
-        const value = Number(amount)
-        if (!value || get().user.points < value) { toast.error('투자할 별빛이 부족해요'); return }
-        set(state => ({ user: { ...state.user, points: state.user.points - value, universeInvestment: (state.user.universeInvestment || 0) + value } }))
-        void persistUserRemote(get)
-        toast.success(`우주에 ${value} Starlight 투자 완료`)
-      },
-      investPlanet: amount => {
-        const value = Number(amount)
-        const user = get().user
-        if (user.level < 20) { toast.error('Level 20부터 행성을 만들 수 있어요'); return }
-        if (!value || user.points < value) { toast.error('투자할 별빛이 부족해요'); return }
-        set(state => ({ user: { ...state.user, points: state.user.points - value, planetInvestment: (state.user.planetInvestment || 0) + value } }))
-        void persistUserRemote(get)
-        toast.success(`행성에 ${value} Starlight 투자 완료`)
-      },
-    }),
-    {
-      name: 'cometail-v8-4-store',
-      partialize: state => ({
-        user: state.user,
-        diaries: state.diaries,
-        homework: state.homework,
-        students: state.students,
-        missions: state.missions,
-        quests: state.quests,
-        inviteCodes: state.inviteCodes,
-        typingRecords: state.typingRecords,
-        notifications: state.notifications,
-        theme: state.theme,
-        currentPrompt: state.currentPrompt,
-      }),
-    },
-  ),
-)
+    }
+    const nextUser = { ...state.user, points: Number(state.user.points || 0) + 5, streak: Math.max(1, Number(state.user.streak || 0)) }
+    set({ todayEntry: next, user: nextUser })
+    syncUser(nextUser)
+    toast.success(mateAlreadySubmitted ? '두 별빛이 만났어요!' : '내 별빛을 보냈어요')
+  },
+  simulateMateEntry: () => {
+    const state = get()
+    const unlocked = state.todayEntry.mySubmitted
+    const next = {
+      ...state.todayEntry,
+      mateSubmitted: true,
+      mateAnswer: 'I felt happy when I found a quiet café after work. It made the evening feel slower and warmer.',
+      matePhoto: '',
+      unlocked,
+    }
+    const nextPair = unlocked && state.pair ? { ...state.pair, pairLight: state.pair.pairLight + 10, constellationStars: state.pair.constellationStars + 1, pairStreak: state.pair.pairStreak + 1 } : state.pair
+    set({ todayEntry: next, pair: nextPair })
+    toast.success(unlocked ? '오늘의 이야기가 열렸어요' : '상대의 별빛이 도착했어요')
+  },
+  addReaction: reaction => set(state => ({ todayEntry: { ...state.todayEntry, reactions: [...state.todayEntry.reactions, reaction] } })),
+  saveTodayMemory: () => {
+    const state = get()
+    if (!state.todayEntry.unlocked) return
+    if (state.memories.some(item => item.date === state.todayEntry.date)) { toast('이미 보관했어요'); return }
+    set({ memories: [{ ...state.todayEntry, savedAt: new Date().toISOString() }, ...state.memories] })
+    toast.success('별빛 보관함에 저장했어요')
+  },
+  sendNudge: () => toast.success('상대에게 별빛 신호를 보냈어요'),
+  updatePairStyle: style => set(state => ({ pair: state.pair ? { ...state.pair, sharedStyle: style } : state.pair })),
+  toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+}), {
+  name: 'cometail-pair-v16',
+  partialize: state => ({ user: state.user, isAuthed: state.isAuthed, theme: state.theme, pair: state.pair, todayEntry: state.todayEntry, memories: state.memories, matching: state.matching }),
+}))

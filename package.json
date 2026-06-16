@@ -1,7 +1,7 @@
 {
-  "name": "cometail-v9-wow-polish",
+  "name": "cometail-pair-universe",
   "private": true,
-  "version": "9.0.0",
+  "version": "16.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
